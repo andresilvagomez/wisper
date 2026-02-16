@@ -1,0 +1,144 @@
+import SwiftUI
+import Combine
+
+enum TranscriptionMode: String, CaseIterable {
+    case streaming = "Streaming"
+    case onRelease = "On Release"
+}
+
+enum RecordingMode: String, CaseIterable {
+    case pushToTalk = "Push to Talk"
+    case toggle = "Toggle"
+}
+
+@MainActor
+final class AppState: ObservableObject {
+    // MARK: - Recording State
+    @Published var isRecording = false
+    @Published var partialText = ""
+    @Published var confirmedText = ""
+
+    // MARK: - Model State
+    @Published var modelPhase: ModelPhase = .idle
+    @Published var selectedModel = "openai_whisper-base"
+
+    // MARK: - Settings
+    @AppStorage("transcriptionMode") var transcriptionMode: TranscriptionMode = .streaming
+    @AppStorage("recordingMode") var recordingMode: RecordingMode = .pushToTalk
+    @AppStorage("selectedLanguage") var selectedLanguage = "es"
+    @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding = false
+    @AppStorage("launchAtLogin") var launchAtLogin = false
+
+    // MARK: - Engines
+    var audioEngine: AudioEngine?
+    var transcriptionEngine: TranscriptionEngine?
+    var hotkeyManager: HotkeyManager?
+    var textInjector: TextInjector?
+
+    // MARK: - Available Languages
+    static let availableLanguages: [(code: String, name: String)] = [
+        ("es", "Español"),
+        ("en", "English"),
+        ("pt", "Português"),
+        ("fr", "Français"),
+        ("de", "Deutsch"),
+        ("it", "Italiano"),
+        ("ja", "日本語"),
+        ("ko", "한국어"),
+        ("zh", "中文"),
+    ]
+
+    static let availableModels: [(id: String, name: String, size: String)] = [
+        ("openai_whisper-base", "Base (Fast, good for testing)", "~80 MB"),
+        ("openai_whisper-small", "Small (Balanced)", "~216 MB"),
+        ("openai_whisper-large-v3-v20240930_turbo", "Large V3 Turbo (Best)", "~632 MB"),
+        ("openai_whisper-large-v3-v20240930", "Large V3 (Highest quality)", "~1.5 GB"),
+    ]
+
+    init() {
+        setupEngines()
+    }
+
+    func setupEngines() {
+        textInjector = TextInjector()
+        audioEngine = AudioEngine()
+
+        transcriptionEngine = TranscriptionEngine(
+            onPartialResult: { [weak self] text in
+                Task { @MainActor in
+                    print("[Wisper] Partial: \(text)")
+                    self?.partialText = text
+                }
+            },
+            onFinalResult: { [weak self] text in
+                Task { @MainActor in
+                    print("[Wisper] Final result: \(text)")
+                    self?.confirmedText += text + " "
+                    self?.partialText = ""
+                    self?.textInjector?.typeText(text)
+                }
+            }
+        )
+
+        hotkeyManager = HotkeyManager(
+            onToggle: { [weak self] in
+                Task { @MainActor in
+                    self?.toggleRecording()
+                }
+            }
+        )
+    }
+
+    func toggleRecording() {
+        if isRecording {
+            stopRecording()
+        } else {
+            startRecording()
+        }
+    }
+
+    func startRecording() {
+        guard modelPhase.isReady, !isRecording else { return }
+        isRecording = true
+        confirmedText = ""
+        partialText = ""
+
+        let engine = transcriptionEngine
+        audioEngine?.startCapture { buffer in
+            engine?.processAudioBuffer(buffer)
+        }
+    }
+
+    func stopRecording() {
+        guard isRecording else { return }
+        isRecording = false
+        audioEngine?.stopCapture()
+
+        transcriptionEngine?.finalize()
+
+        if transcriptionMode == .onRelease, !confirmedText.isEmpty {
+            textInjector?.typeText(confirmedText)
+        }
+    }
+
+    func loadModel() async {
+        // Show spinner immediately on MainActor before yielding
+        modelPhase = .loading(step: "Preparing model...")
+
+        let engine = transcriptionEngine
+        let model = selectedModel
+        let lang = selectedLanguage
+
+        let phaseHandler: @Sendable (ModelPhase) -> Void = { [weak self] phase in
+            Task { @MainActor in
+                self?.modelPhase = phase
+            }
+        }
+
+        _ = await engine?.loadModel(
+            modelName: model,
+            language: lang,
+            onPhaseChange: phaseHandler
+        ) ?? false
+    }
+}
