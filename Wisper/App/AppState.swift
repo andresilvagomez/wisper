@@ -57,6 +57,11 @@ final class AppState: ObservableObject {
 
     init() {
         setupEngines()
+        textInjector?.setup()
+        // Load model immediately on app launch
+        Task { [weak self] in
+            await self?.loadModel()
+        }
     }
 
     func setupEngines() {

@@ -1,11 +1,35 @@
 import ApplicationServices
-import Carbon
 import Cocoa
 import Foundation
 
 final class TextInjector: @unchecked Sendable {
-    /// Inject text into the currently focused application via clipboard paste.
-    /// This is the most reliable cross-app method for text injection on macOS.
+    private let pasteQueue = DispatchQueue(label: "com.wisper.textinjector", qos: .userInteractive)
+    private var hasShownAccessibilityHelper = false
+
+    func setup() {
+        let trusted = AXIsProcessTrusted()
+        let bundlePath = Bundle.main.bundlePath
+        print("[Wisper] TextInjector: bundle path = \(bundlePath)")
+        print("[Wisper] TextInjector: accessibility = \(trusted)")
+
+        if !trusted {
+            print("[Wisper] ⚠️  Wisper needs Accessibility permission to paste text.")
+            print("[Wisper] ⚠️  Opening Finder at the app location — drag it into")
+            print("[Wisper] ⚠️  System Settings > Privacy & Security > Accessibility")
+
+            // Open Finder highlighting the actual .app so user can drag it to Accessibility
+            let url = URL(fileURLWithPath: bundlePath)
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+
+            // Also open Accessibility settings
+            if let settingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                NSWorkspace.shared.open(settingsURL)
+            }
+
+            hasShownAccessibilityHelper = true
+        }
+    }
+
     func typeText(_ text: String) {
         guard !text.isEmpty else { return }
 
@@ -13,44 +37,33 @@ final class TextInjector: @unchecked Sendable {
         guard !trimmed.isEmpty else { return }
 
         let textToInject = trimmed + " "
-        print("[Wisper] TextInjector: injecting \(textToInject.count) chars: \"\(textToInject.prefix(50))\"")
-        print("[Wisper] TextInjector: accessibility=\(isAccessibilityEnabled())")
 
-        // Always use clipboard paste — most reliable method
-        pasteViaClipboard(textToInject)
-    }
+        print("")
+        print("[Wisper] ========== TEXT OUTPUT ==========")
+        print("[Wisper] \(textToInject)")
+        print("[Wisper] =================================")
+        print("")
 
-    // MARK: - Clipboard Paste
-
-    private func pasteViaClipboard(_ text: String) {
+        // Put text on clipboard
         let pasteboard = NSPasteboard.general
-        let previousContents = pasteboard.string(forType: .string)
-
         pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+        pasteboard.setString(textToInject, forType: .string)
 
-        // Small delay to ensure pasteboard is ready
-        usleep(50_000) // 50ms
-
-        simulatePaste()
-        print("[Wisper] TextInjector: paste command sent")
-
-        // Restore previous clipboard after a delay
-        if let previous = previousContents {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                pasteboard.clearContents()
-                pasteboard.setString(previous, forType: .string)
-            }
+        // Paste via CGEvent Cmd+V
+        pasteQueue.async {
+            self.simulateCmdV()
         }
     }
 
-    private func simulatePaste() {
+    private func simulateCmdV() {
+        usleep(50_000) // 50ms for clipboard
+
         let source = CGEventSource(stateID: .hidSystemState)
 
-        guard let cmdVDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true), // 'v' key
+        guard let cmdVDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),
               let cmdVUp = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
         else {
-            print("[Wisper] TextInjector: ERROR - failed to create CGEvent")
+            print("[Wisper] TextInjector: ERROR creating CGEvent")
             return
         }
 
@@ -58,18 +71,9 @@ final class TextInjector: @unchecked Sendable {
         cmdVUp.flags = .maskCommand
 
         cmdVDown.post(tap: .cghidEventTap)
-        usleep(10_000) // 10ms between key down/up
+        usleep(20_000) // 20ms
         cmdVUp.post(tap: .cghidEventTap)
-    }
 
-    // MARK: - Accessibility Check
-
-    func isAccessibilityEnabled() -> Bool {
-        AXIsProcessTrusted()
-    }
-
-    func requestAccessibility() {
-        let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-        AXIsProcessTrustedWithOptions(options)
+        print("[Wisper] TextInjector: Cmd+V sent")
     }
 }

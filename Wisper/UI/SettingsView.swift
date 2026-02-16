@@ -64,16 +64,10 @@ struct GeneralSettingsTab: View {
                     }
 
                 HStack {
-                    Text("Accessibility")
+                    Text("Text Injection")
                     Spacer()
-                    if appState.textInjector?.isAccessibilityEnabled() == true {
-                        Label("Enabled", systemImage: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                    } else {
-                        Button("Grant Access") {
-                            appState.textInjector?.requestAccessibility()
-                        }
-                    }
+                    Label("Via Automation", systemImage: "gearshape.2.fill")
+                        .foregroundStyle(.secondary)
                 }
             }
         }

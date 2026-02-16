@@ -98,11 +98,9 @@ struct OnboardingView: View {
 
                 permissionRow(
                     icon: "hand.raised.fill",
-                    title: "Accessibility",
-                    description: "Required to type text into other apps",
-                    action: {
-                        appState.textInjector?.requestAccessibility()
-                    }
+                    title: "Automation",
+                    description: "Allows Wisper to paste text into other apps (granted automatically on first use)",
+                    action: {}
                 )
             }
             .padding(.horizontal)

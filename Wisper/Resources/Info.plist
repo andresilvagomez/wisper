@@ -24,6 +24,8 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Wisper needs access to your microphone to transcribe your speech to text.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Wisper needs to send keystrokes to paste transcribed text into your active application.</string>
 	<key>NSMainStoryboardFile</key>
 	<string></string>
 </dict>
