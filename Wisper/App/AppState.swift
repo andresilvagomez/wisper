@@ -17,6 +17,10 @@ final class AppState: ObservableObject {
     @Published var isRecording = false
     @Published var partialText = ""
     @Published var confirmedText = ""
+    @Published var audioLevel: Float = 0
+
+    // MARK: - Overlay
+    private var overlayController = OverlayWindowController()
 
     // MARK: - Model State
     @Published var modelPhase: ModelPhase = .idle
@@ -57,7 +61,6 @@ final class AppState: ObservableObject {
 
     init() {
         setupEngines()
-        textInjector?.setup()
         // Load model immediately on app launch
         Task { [weak self] in
             await self?.loadModel()
@@ -104,20 +107,37 @@ final class AppState: ObservableObject {
 
     func startRecording() {
         guard modelPhase.isReady, !isRecording else { return }
+
+        // Capture the target app BEFORE anything else (before overlay steals focus)
+        textInjector?.captureTargetApp()
+
         isRecording = true
         confirmedText = ""
         partialText = ""
+        audioLevel = 0
+
+        overlayController.show(appState: self)
 
         let engine = transcriptionEngine
-        audioEngine?.startCapture { buffer in
-            engine?.processAudioBuffer(buffer)
-        }
+        audioEngine?.startCapture(
+            onBuffer: { buffer in
+                engine?.processAudioBuffer(buffer)
+            },
+            onLevel: { [weak self] level in
+                Task { @MainActor in
+                    self?.audioLevel = level
+                }
+            }
+        )
     }
 
     func stopRecording() {
         guard isRecording else { return }
         isRecording = false
+        audioLevel = 0
         audioEngine?.stopCapture()
+
+        overlayController.hide()
 
         transcriptionEngine?.finalize()
 

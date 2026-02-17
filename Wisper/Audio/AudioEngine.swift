@@ -8,8 +8,9 @@ final class AudioEngine: @unchecked Sendable {
     private var converter: AVAudioConverter?
 
     typealias AudioBufferHandler = @Sendable ([Float]) -> Void
+    typealias AudioLevelHandler = @Sendable (Float) -> Void
 
-    func startCapture(onBuffer: @escaping AudioBufferHandler) {
+    func startCapture(onBuffer: @escaping AudioBufferHandler, onLevel: AudioLevelHandler? = nil) {
         guard !isCapturing else { return }
 
         engine = AVAudioEngine()
@@ -56,11 +57,24 @@ final class AudioEngine: @unchecked Sendable {
             }
 
             if let channelData = convertedBuffer.floatChannelData?[0] {
+                let frameLength = Int(convertedBuffer.frameLength)
                 let samples = Array(UnsafeBufferPointer(
                     start: channelData,
-                    count: Int(convertedBuffer.frameLength)
+                    count: frameLength
                 ))
                 onBuffer(samples)
+
+                // Calculate RMS level for visualization
+                if let onLevel {
+                    var sum: Float = 0
+                    for i in 0..<frameLength {
+                        sum += samples[i] * samples[i]
+                    }
+                    let rms = sqrt(sum / Float(max(frameLength, 1)))
+                    // Normalize to 0-1 range (typical speech RMS is 0.01-0.3)
+                    let normalized = min(1.0, rms * 5.0)
+                    onLevel(normalized)
+                }
             }
         }
 
