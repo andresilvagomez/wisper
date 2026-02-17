@@ -18,7 +18,7 @@ final class TranscriptionEngine: @unchecked Sendable {
     private let sampleRate: Int = 16000
 
     // Whisper hallucination patterns to filter out
-    private static let hallucinationPatterns: [String] = [
+    static let hallucinationPatterns: [String] = [
         "[música]", "[music]", "[musica]",
         "[aplausos]", "[applause]",
         "[risas]", "[laughter]",
@@ -152,17 +152,22 @@ final class TranscriptionEngine: @unchecked Sendable {
         }
     }
 
-    func finalize() {
-        // Process any remaining audio in the buffer
+    func finalize(completion: (@Sendable () -> Void)? = nil) {
         accumulatorLock.lock()
         let remainingAudio = audioAccumulator
         audioAccumulator.removeAll()
         accumulatorLock.unlock()
 
-        guard let whisperKit, !remainingAudio.isEmpty else { return }
+        guard let whisperKit, !remainingAudio.isEmpty else {
+            completion?()
+            return
+        }
 
         processingQueue.async { [weak self] in
-            guard let self else { return }
+            guard let self else {
+                completion?()
+                return
+            }
 
             Task {
                 do {
@@ -193,6 +198,8 @@ final class TranscriptionEngine: @unchecked Sendable {
                 } catch {
                     print("[Wisper] Final transcription error: \(error)")
                 }
+
+                completion?()
             }
         }
     }
@@ -204,7 +211,7 @@ final class TranscriptionEngine: @unchecked Sendable {
     }
 
     /// Returns true if the text is a known Whisper hallucination
-    private static func isHallucination(_ text: String) -> Bool {
+    static func isHallucination(_ text: String) -> Bool {
         let lower = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Empty or very short (1-2 chars)

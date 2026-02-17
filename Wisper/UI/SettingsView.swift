@@ -41,6 +41,9 @@ struct GeneralSettingsTab: View {
                         Text(lang.name).tag(lang.code)
                     }
                 }
+                .onChange(of: appState.selectedLanguage) { _, _ in
+                    appState.reloadModel()
+                }
             }
 
             Section("Recording") {
@@ -62,13 +65,6 @@ struct GeneralSettingsTab: View {
                     .onChange(of: appState.launchAtLogin) { _, newValue in
                         setLaunchAtLogin(newValue)
                     }
-
-                HStack {
-                    Text("Text Injection")
-                    Spacer()
-                    Label("Via Automation", systemImage: "gearshape.2.fill")
-                        .foregroundStyle(.secondary)
-                }
             }
         }
         .formStyle(.grouped)
@@ -106,6 +102,10 @@ struct ModelSettingsTab: View {
                         }
                         .tag(model.id)
                     }
+                }
+                .disabled(appState.isRecording || appState.modelPhase.isActive)
+                .onChange(of: appState.selectedModel) { _, _ in
+                    appState.reloadModel()
                 }
 
                 switch appState.modelPhase {

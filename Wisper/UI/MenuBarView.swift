@@ -19,6 +19,16 @@ struct MenuBarView: View {
                 Divider()
             }
 
+            // Permission warnings
+            if appState.needsMicrophone {
+                microphoneWarning
+                Divider()
+            }
+            if appState.needsAccessibility {
+                accessibilityWarning
+                Divider()
+            }
+
             // Language selector
             languageSelector
             Divider()
@@ -95,6 +105,25 @@ struct MenuBarView: View {
 
     private var transcriptionPreview: some View {
         VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Transcription")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                if !appState.confirmedText.isEmpty {
+                    Button(action: {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(appState.confirmedText.trimmingCharacters(in: .whitespaces), forType: .string)
+                    }) {
+                        Image(systemName: "doc.on.doc")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                    .help("Copy transcription")
+                }
+            }
+
             if !appState.confirmedText.isEmpty {
                 Text(appState.confirmedText)
                     .foregroundColor(.primary)
@@ -124,6 +153,65 @@ struct MenuBarView: View {
         .pickerStyle(.menu)
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
+        .onChange(of: appState.selectedLanguage) { _, _ in
+            appState.reloadModel()
+        }
+    }
+
+    // MARK: - Accessibility Warning
+
+    private var accessibilityWarning: some View {
+        Button(action: {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                NSWorkspace.shared.open(url)
+            }
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+                    .font(.caption)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Accessibility required")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text("Tap to open Settings")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Microphone Warning
+
+    private var microphoneWarning: some View {
+        Button(action: {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+                NSWorkspace.shared.open(url)
+            }
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: "mic.slash.fill")
+                    .foregroundColor(.red)
+                    .font(.caption)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Microphone required")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text("Tap to open Settings")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 
     // MARK: - Actions
@@ -162,6 +250,7 @@ struct MenuBarView: View {
             Divider()
 
             Button(action: {
+                appState.cleanup()
                 NSApplication.shared.terminate(nil)
             }) {
                 Label("Quit Wisper", systemImage: "power")

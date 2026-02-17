@@ -1,5 +1,6 @@
-import SwiftUI
+@preconcurrency import AVFoundation
 import Combine
+import SwiftUI
 
 enum TranscriptionMode: String, CaseIterable {
     case streaming = "Streaming"
@@ -14,19 +15,25 @@ enum RecordingMode: String, CaseIterable {
 @MainActor
 final class AppState: ObservableObject {
     // MARK: - Recording State
+
     @Published var isRecording = false
     @Published var partialText = ""
     @Published var confirmedText = ""
     @Published var audioLevel: Float = 0
+    @Published var needsAccessibility = false
+    @Published var needsMicrophone = false
 
     // MARK: - Overlay
+
     private var overlayController = OverlayWindowController()
 
     // MARK: - Model State
+
     @Published var modelPhase: ModelPhase = .idle
     @Published var selectedModel = "openai_whisper-base"
 
     // MARK: - Settings
+
     @AppStorage("transcriptionMode") var transcriptionMode: TranscriptionMode = .streaming
     @AppStorage("recordingMode") var recordingMode: RecordingMode = .pushToTalk
     @AppStorage("selectedLanguage") var selectedLanguage = "es"
@@ -34,12 +41,14 @@ final class AppState: ObservableObject {
     @AppStorage("launchAtLogin") var launchAtLogin = false
 
     // MARK: - Engines
+
     var audioEngine: AudioEngine?
     var transcriptionEngine: TranscriptionEngine?
     var hotkeyManager: HotkeyManager?
     var textInjector: TextInjector?
 
     // MARK: - Available Languages
+
     static let availableLanguages: [(code: String, name: String)] = [
         ("es", "Español"),
         ("en", "English"),
@@ -61,7 +70,6 @@ final class AppState: ObservableObject {
 
     init() {
         setupEngines()
-        // Load model immediately on app launch
         Task { [weak self] in
             await self?.loadModel()
         }
@@ -69,6 +77,24 @@ final class AppState: ObservableObject {
 
     func setupEngines() {
         textInjector = TextInjector()
+        textInjector?.setup()
+        needsAccessibility = !(textInjector?.hasAccessibility ?? false)
+
+        // Check microphone permission
+        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+        needsMicrophone = (micStatus != .authorized)
+        print("[Wisper] Microphone permission: \(micStatus.rawValue) (0=notDetermined, 1=restricted, 2=denied, 3=authorized)")
+
+        if micStatus == .notDetermined {
+            Task {
+                let granted = await AudioEngine.requestPermission()
+                await MainActor.run {
+                    self.needsMicrophone = !granted
+                    print("[Wisper] Microphone permission granted: \(granted)")
+                }
+            }
+        }
+
         audioEngine = AudioEngine()
 
         transcriptionEngine = TranscriptionEngine(
@@ -80,18 +106,34 @@ final class AppState: ObservableObject {
             },
             onFinalResult: { [weak self] text in
                 Task { @MainActor in
+                    guard let self else { return }
                     print("[Wisper] Final result: \(text)")
-                    self?.confirmedText += text + " "
-                    self?.partialText = ""
-                    self?.textInjector?.typeText(text)
+                    self.confirmedText += text + " "
+                    self.partialText = ""
+                    if self.transcriptionMode == .streaming {
+                        self.textInjector?.typeText(text)
+                    }
                 }
             }
         )
 
         hotkeyManager = HotkeyManager(
-            onToggle: { [weak self] in
+            onKeyDown: { [weak self] in
                 Task { @MainActor in
-                    self?.toggleRecording()
+                    guard let self else { return }
+                    if self.recordingMode == .pushToTalk {
+                        self.startRecording()
+                    } else {
+                        self.toggleRecording()
+                    }
+                }
+            },
+            onKeyUp: { [weak self] in
+                Task { @MainActor in
+                    guard let self else { return }
+                    if self.recordingMode == .pushToTalk {
+                        self.stopRecording()
+                    }
                 }
             }
         )
@@ -106,9 +148,22 @@ final class AppState: ObservableObject {
     }
 
     func startRecording() {
-        guard modelPhase.isReady, !isRecording else { return }
+        guard modelPhase.isReady, !isRecording else {
+            print("[Wisper] startRecording BLOCKED — modelReady=\(modelPhase.isReady) isRecording=\(isRecording)")
+            return
+        }
 
-        // Capture the target app BEFORE anything else (before overlay steals focus)
+        // Recheck permissions each time
+        textInjector?.recheckAccessibility()
+        needsAccessibility = !(textInjector?.hasAccessibility ?? false)
+
+        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+        needsMicrophone = (micStatus != .authorized)
+        guard !needsMicrophone else {
+            print("[Wisper] ⚠️ startRecording BLOCKED — no microphone permission")
+            return
+        }
+
         textInjector?.captureTargetApp()
 
         isRecording = true
@@ -117,6 +172,8 @@ final class AppState: ObservableObject {
         audioLevel = 0
 
         overlayController.show(appState: self)
+
+        print("[Wisper] ▶ Recording started (mode: \(recordingMode.rawValue), transcription: \(transcriptionMode.rawValue))")
 
         let engine = transcriptionEngine
         audioEngine?.startCapture(
@@ -136,18 +193,32 @@ final class AppState: ObservableObject {
         isRecording = false
         audioLevel = 0
         audioEngine?.stopCapture()
-
         overlayController.hide()
+        print("[Wisper] ⏹ Recording stopped (confirmed: \(confirmedText.count) chars)")
 
-        transcriptionEngine?.finalize()
+        if transcriptionMode == .onRelease {
+            transcriptionEngine?.finalize { [weak self] in
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(50))
+                    guard let self, !self.confirmedText.isEmpty else { return }
+                    self.textInjector?.typeText(self.confirmedText)
+                }
+            }
+        } else {
+            transcriptionEngine?.finalize()
+        }
+    }
 
-        if transcriptionMode == .onRelease, !confirmedText.isEmpty {
-            textInjector?.typeText(confirmedText)
+    func cleanup() {
+        if isRecording {
+            audioEngine?.stopCapture()
+            isRecording = false
         }
     }
 
     func loadModel() async {
-        // Show spinner immediately on MainActor before yielding
+        guard !modelPhase.isActive else { return }
+
         modelPhase = .loading(step: "Preparing model...")
 
         let engine = transcriptionEngine
@@ -165,5 +236,10 @@ final class AppState: ObservableObject {
             language: lang,
             onPhaseChange: phaseHandler
         ) ?? false
+    }
+
+    func reloadModel() {
+        guard !isRecording, !modelPhase.isActive else { return }
+        Task { await loadModel() }
     }
 }

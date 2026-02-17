@@ -8,13 +8,20 @@ final class TextInjector: @unchecked Sendable {
     /// The app that was active when recording started — paste goes here.
     private var targetApp: NSRunningApplication?
 
+    /// Whether we have Accessibility permission (checked on setup and each paste)
+    private(set) var hasAccessibility: Bool = false
+
     func setup() {
-        let trusted = AXIsProcessTrusted()
-        print("[Wisper] TextInjector: accessibility = \(trusted)")
-        print("[Wisper] TextInjector: bundle path = \(Bundle.main.bundlePath)")
+        let key = "AXTrustedCheckOptionPrompt" as CFString
+        let options = [key: true] as CFDictionary
+        hasAccessibility = AXIsProcessTrustedWithOptions(options)
+        print("[Wisper] TextInjector: accessibility = \(hasAccessibility)")
     }
 
-    /// Call this when recording starts to capture which app should receive the text.
+    func recheckAccessibility() {
+        hasAccessibility = AXIsProcessTrusted()
+    }
+
     func captureTargetApp() {
         targetApp = NSWorkspace.shared.frontmostApplication
         print("[Wisper] TextInjector: target app = \(targetApp?.localizedName ?? "none") (pid: \(targetApp?.processIdentifier ?? 0))")
@@ -28,41 +35,37 @@ final class TextInjector: @unchecked Sendable {
 
         let textToInject = trimmed + " "
 
-        // Diagnostic: check Accessibility every time we try to paste
-        let trusted = AXIsProcessTrusted()
-        print("")
-        print("[Wisper] ========== TEXT OUTPUT ==========")
-        print("[Wisper] text: \(textToInject)")
-        print("[Wisper] accessibility: \(trusted)")
-        print("[Wisper] target: \(targetApp?.localizedName ?? "none") (pid: \(targetApp?.processIdentifier ?? 0))")
-        if !trusted {
-            print("[Wisper] ⚠️ Accessibility NOT granted — Cmd+V will fail silently!")
-            print("[Wisper] ⚠️ Add this binary to System Settings > Privacy > Accessibility:")
-            print("[Wisper] ⚠️ \(Bundle.main.bundlePath)")
-        }
-        print("[Wisper] =================================")
-        print("")
+        hasAccessibility = AXIsProcessTrusted()
+        print("[Wisper] 📋 typeText: \"\(textToInject)\" | accessibility=\(hasAccessibility) | target=\(targetApp?.localizedName ?? "none")")
 
-        // Put text on clipboard
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(textToInject, forType: .string)
+        guard hasAccessibility else {
+            print("[Wisper] ⚠️ Skipping paste — no Accessibility permission")
+            return
+        }
 
         let app = targetApp
 
         pasteQueue.async {
+            // 1. Copy to clipboard first (always)
+            DispatchQueue.main.sync {
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(textToInject, forType: .string)
+            }
+            print("[Wisper] 📋 Clipboard set")
+
+            // 2. Activate target app
             if let app {
-                let activated = app.activate()
-                print("[Wisper] TextInjector: activate(\(app.localizedName ?? "?")) = \(activated)")
-                usleep(200_000) // 200ms for app to gain focus
-            } else {
-                print("[Wisper] TextInjector: no target app, pasting to frontmost")
-                usleep(50_000)
+                app.activate()
+                usleep(200_000) // 200ms for app to come to front
             }
 
+            // 3. Simulate Cmd+V
             self.simulateCmdV()
         }
     }
+
+    // MARK: - Clipboard + Cmd+V
 
     private func simulateCmdV() {
         let source = CGEventSource(stateID: .hidSystemState)
@@ -78,7 +81,7 @@ final class TextInjector: @unchecked Sendable {
         cmdVUp.flags = .maskCommand
 
         cmdVDown.post(tap: .cghidEventTap)
-        usleep(20_000) // 20ms
+        usleep(20_000)
         cmdVUp.post(tap: .cghidEventTap)
 
         print("[Wisper] TextInjector: Cmd+V sent")

@@ -4,13 +4,15 @@ import HotKey
 
 final class HotkeyManager: @unchecked Sendable {
     private var hotKey: HotKey?
-    private let onToggle: @Sendable () -> Void
-    private var isActive = false
+    private let onKeyDown: @Sendable () -> Void
+    private let onKeyUp: @Sendable () -> Void
 
     init(
-        onToggle: @escaping @Sendable () -> Void
+        onKeyDown: @escaping @Sendable () -> Void,
+        onKeyUp: @escaping @Sendable () -> Void
     ) {
-        self.onToggle = onToggle
+        self.onKeyDown = onKeyDown
+        self.onKeyUp = onKeyUp
         setupDefaultHotkey()
     }
 
@@ -24,9 +26,12 @@ final class HotkeyManager: @unchecked Sendable {
 
         hotKey = HotKey(key: key, modifiers: modifiers)
 
-        // Toggle mode: press once to start, press again to stop
         hotKey?.keyDownHandler = { [weak self] in
-            self?.onToggle()
+            self?.onKeyDown()
+        }
+
+        hotKey?.keyUpHandler = { [weak self] in
+            self?.onKeyUp()
         }
     }
 

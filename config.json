@@ -1,0 +1,18 @@
+{
+  "id": "ws_11b20a05",
+  "name": "wisper",
+  "slug": "wisper",
+  "defaults": {
+    "permissionMode": "safe",
+    "cyclablePermissionModes": [
+      "safe",
+      "allow-all"
+    ],
+    "enabledSourceSlugs": []
+  },
+  "localMcpServers": {
+    "enabled": true
+  },
+  "createdAt": 1771299339549,
+  "updatedAt": 1771299339550
+}

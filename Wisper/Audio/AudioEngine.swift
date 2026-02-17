@@ -13,6 +13,12 @@ final class AudioEngine: @unchecked Sendable {
     func startCapture(onBuffer: @escaping AudioBufferHandler, onLevel: AudioLevelHandler? = nil) {
         guard !isCapturing else { return }
 
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        guard status == .authorized else {
+            print("[AudioEngine] ⚠️ Cannot start — microphone not authorized (status: \(status.rawValue))")
+            return
+        }
+
         engine = AVAudioEngine()
         guard let engine else { return }
 

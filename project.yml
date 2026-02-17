@@ -33,7 +33,9 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "6.0"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
-        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: 7NBJJ9P97F
+        CODE_SIGN_IDENTITY: "DD9A14A7890D716B95CFACB96F0EBDA356EE18CB"
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
         ENABLE_HARDENED_RUNTIME: false
         ENABLE_APP_SANDBOX: false
@@ -46,3 +48,16 @@ targets:
       properties:
         com.apple.security.device.audio-input: true
         com.apple.security.automation.apple-events: true
+
+  WisperTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: WisperTests
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        GENERATE_INFOPLIST_FILE: true
+    dependencies:
+      - target: Wisper

@@ -51,6 +51,13 @@ struct OnboardingView: View {
             .padding(24)
         }
         .frame(width: 500, height: 400)
+        .task {
+            if appState.hasCompletedOnboarding {
+                DispatchQueue.main.async {
+                    NSApp.windows.first { $0.title == "Wisper Setup" }?.close()
+                }
+            }
+        }
     }
 
     // MARK: - Welcome
@@ -91,6 +98,7 @@ struct OnboardingView: View {
                     icon: "mic.fill",
                     title: "Microphone",
                     description: "Required to capture your voice",
+                    buttonLabel: "Grant",
                     action: {
                         Task { _ = await AudioEngine.requestPermission() }
                     }
@@ -98,9 +106,14 @@ struct OnboardingView: View {
 
                 permissionRow(
                     icon: "hand.raised.fill",
-                    title: "Automation",
-                    description: "Allows Wisper to paste text into other apps (granted automatically on first use)",
-                    action: {}
+                    title: "Accessibility",
+                    description: "Required so Wisper can paste text into other apps",
+                    buttonLabel: "Open Settings",
+                    action: {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
                 )
             }
             .padding(.horizontal)
@@ -110,7 +123,7 @@ struct OnboardingView: View {
         .padding()
     }
 
-    private func permissionRow(icon: String, title: String, description: String, action: @escaping () -> Void) -> some View {
+    private func permissionRow(icon: String, title: String, description: String, buttonLabel: String, action: @escaping () -> Void) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.title2)
@@ -127,7 +140,7 @@ struct OnboardingView: View {
 
             Spacer()
 
-            Button("Grant") {
+            Button(buttonLabel) {
                 action()
             }
             .buttonStyle(.bordered)
