@@ -165,7 +165,7 @@ struct MenuBarView: View {
                 Text(lang.name).tag(lang.code)
             }
         } label: {
-            Label("Language", systemImage: "globe")
+            Label("Transcription language", systemImage: "globe")
         }
         .pickerStyle(.menu)
         .padding(.horizontal, 12)

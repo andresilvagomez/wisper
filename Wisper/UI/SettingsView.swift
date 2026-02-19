@@ -42,6 +42,12 @@ struct GeneralSettingsTab: View {
     var body: some View {
         Form {
             Section("Language") {
+                Picker("Interface language", selection: $appState.interfaceLanguage) {
+                    ForEach(AppState.availableInterfaceLanguages, id: \.code) { lang in
+                        Text(lang.name).tag(lang.code)
+                    }
+                }
+
                 Picker("Transcription language", selection: $appState.selectedLanguage) {
                     ForEach(AppState.availableLanguages, id: \.code) { lang in
                         Text(lang.name).tag(lang.code)

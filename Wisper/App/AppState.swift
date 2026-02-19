@@ -56,6 +56,7 @@ final class AppState: ObservableObject {
 
     @AppStorage("transcriptionMode") var transcriptionMode: TranscriptionMode = .streaming
     @AppStorage("recordingMode") var recordingMode: RecordingMode = .pushToTalk
+    @AppStorage("interfaceLanguage") var interfaceLanguage = "system"
     @AppStorage("selectedLanguage") var selectedLanguage = "auto"
     @AppStorage("whisperModeEnabled") var whisperModeEnabled = false
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding = false
@@ -179,6 +180,15 @@ final class AppState: ObservableObject {
         ("zh-Hans", "中文（简体）"),
         ("zh-Hant", "中文（繁體）"),
         ("zh", "中文"),
+    ]
+
+    static let availableInterfaceLanguages: [(code: String, name: String)] = [
+        ("system", "System"),
+        ("es", "Español"),
+        ("en", "English"),
+        ("pt", "Português"),
+        ("fr", "Français"),
+        ("de", "Deutsch"),
     ]
 
     static let availableModels: [(id: String, name: String, size: String)] = [
@@ -335,6 +345,15 @@ final class AppState: ObservableObject {
         availableInputDevices.first(where: { $0.id == selectedInputDeviceUID })?.name
             ?? availableInputDevices.first?.name
             ?? L10n.t("audio.input.fallback")
+    }
+
+    var resolvedInterfaceLanguageCode: String {
+        if interfaceLanguage != "system" { return interfaceLanguage }
+
+        let preferred = Locale.preferredLanguages.first ?? "en"
+        let preferredCode = Locale(identifier: preferred).language.languageCode?.identifier ?? "en"
+        let supportedCodes = Set(Self.availableInterfaceLanguages.map(\.code))
+        return supportedCodes.contains(preferredCode) ? preferredCode : "en"
     }
 
     func refreshInputDevices() {

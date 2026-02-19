@@ -8,6 +8,56 @@ final class FloatingPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
+enum OverlayPositioning {
+    private static let margin: CGFloat = 12
+
+    static func defaultOrigin(panelSize: CGSize, visibleFrame: NSRect) -> NSPoint {
+        let x = visibleFrame.midX - (panelSize.width / 2)
+        let y = visibleFrame.minY + 60
+        return clampedOrigin(desired: NSPoint(x: x, y: y), panelSize: panelSize, visibleFrame: visibleFrame)
+    }
+
+    static func clampedOrigin(desired: NSPoint, panelSize: CGSize, visibleFrame: NSRect) -> NSPoint {
+        let minX = visibleFrame.minX + margin
+        let maxX = visibleFrame.maxX - panelSize.width - margin
+        let minY = visibleFrame.minY + margin
+        let maxY = visibleFrame.maxY - panelSize.height - margin
+
+        return NSPoint(
+            x: min(max(desired.x, minX), maxX),
+            y: min(max(desired.y, minY), maxY)
+        )
+    }
+}
+
+struct OverlayPositionStorage {
+    private let defaults: UserDefaults
+    private let keyX = "overlayWindowOriginX"
+    private let keyY = "overlayWindowOriginY"
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    func load() -> NSPoint? {
+        guard let x = defaults.object(forKey: keyX) as? Double,
+              let y = defaults.object(forKey: keyY) as? Double else {
+            return nil
+        }
+        return NSPoint(x: x, y: y)
+    }
+
+    func save(_ origin: NSPoint) {
+        defaults.set(Double(origin.x), forKey: keyX)
+        defaults.set(Double(origin.y), forKey: keyY)
+    }
+
+    func clear() {
+        defaults.removeObject(forKey: keyX)
+        defaults.removeObject(forKey: keyY)
+    }
+}
+
 // MARK: - Audio Wave Bars
 
 struct AudioWaveView: View {
@@ -44,6 +94,23 @@ struct RecordingIndicatorContent: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            HStack(spacing: 3) {
+                ForEach(0..<2, id: \.self) { row in
+                    VStack(spacing: 3) {
+                        ForEach(0..<3, id: \.self) { column in
+                            Circle()
+                                .fill(Color.primary.opacity(0.75))
+                                .frame(width: 3.5, height: 3.5)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 4)
+            .frame(width: 20, height: 22)
+            .contentShape(Rectangle())
+            .help("Drag to move")
+
             Circle()
                 .fill(Color.red)
                 .frame(width: 8, height: 8)
@@ -117,6 +184,8 @@ struct RecordingIndicatorContent: View {
 
 final class OverlayWindowController {
     private var window: FloatingPanel?
+    private let positionStorage = OverlayPositionStorage()
+    private var windowMoveObserver: NSObjectProtocol?
 
     @MainActor
     func show(appState: AppState) {
@@ -152,20 +221,36 @@ final class OverlayWindowController {
         panel.level = .statusBar
         panel.hasShadow = false
         panel.contentView = hostingView
-        panel.isMovableByWindowBackground = false
-        panel.isMovable = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        panel.isMovableByWindowBackground = true
+        panel.isMovable = true
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.hidesOnDeactivate = false
 
         if let screen = NSScreen.main {
             let screenFrame = screen.visibleFrame
-            let x = screenFrame.midX - (panelWidth / 2)
-            let y = screenFrame.minY + 60
-            panel.setFrameOrigin(NSPoint(x: x, y: y))
+            let savedOrigin = positionStorage.load()
+            let desiredOrigin = savedOrigin ?? OverlayPositioning.defaultOrigin(
+                panelSize: CGSize(width: panelWidth, height: panelHeight),
+                visibleFrame: screenFrame
+            )
+            let clampedOrigin = OverlayPositioning.clampedOrigin(
+                desired: desiredOrigin,
+                panelSize: CGSize(width: panelWidth, height: panelHeight),
+                visibleFrame: screenFrame
+            )
+            panel.setFrameOrigin(clampedOrigin)
         }
 
         panel.orderFrontRegardless()
         self.window = panel
+        windowMoveObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didMoveNotification,
+            object: panel,
+            queue: .main
+        ) { [weak self, weak panel] _ in
+            guard let self, let panel else { return }
+            self.positionStorage.save(panel.frame.origin)
+        }
 
         // Reactivate the previous app to guarantee focus is not stolen
         previousApp?.activate()
@@ -173,6 +258,10 @@ final class OverlayWindowController {
 
     @MainActor
     func hide() {
+        if let windowMoveObserver {
+            NotificationCenter.default.removeObserver(windowMoveObserver)
+            self.windowMoveObserver = nil
+        }
         window?.orderOut(nil)
         window = nil
     }

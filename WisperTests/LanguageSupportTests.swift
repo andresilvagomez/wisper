@@ -22,6 +22,14 @@ struct LanguageSupportTests {
         #expect(codes.contains("yue"))
     }
 
+    @Test("Interface language catalog includes system and supported locales")
+    func interfaceLanguageCatalog() {
+        let codes = Set(AppState.availableInterfaceLanguages.map(\.code))
+        #expect(codes.contains("system"))
+        #expect(codes.contains("es"))
+        #expect(codes.contains("en"))
+    }
+
     @Test("Variant language codes normalize to whisper base code")
     func variantNormalization() {
         #expect(AppState.normalizeWhisperLanguageCode("pt-BR") == "pt")

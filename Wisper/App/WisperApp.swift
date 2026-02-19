@@ -8,6 +8,7 @@ struct WisperApp: App {
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(appState)
+                .environment(\.locale, Locale(identifier: appState.resolvedInterfaceLanguageCode))
         } label: {
             Label {
                 Text("Wisper")
@@ -22,11 +23,13 @@ struct WisperApp: App {
         Settings {
             SettingsView()
                 .environmentObject(appState)
+                .environment(\.locale, Locale(identifier: appState.resolvedInterfaceLanguageCode))
         }
 
         Window(String(localized: "window.onboarding.title"), id: "onboarding") {
             OnboardingView()
                 .environmentObject(appState)
+                .environment(\.locale, Locale(identifier: appState.resolvedInterfaceLanguageCode))
         }
         .windowResizability(.contentSize)
         .defaultSize(width: 500, height: 400)
