@@ -13,7 +13,7 @@ final class TranscriptionEngine: @unchecked Sendable {
     private let onFinalResult: @Sendable (String) -> Void
 
     // Configuration
-    private var language: String = "es"
+    private var language: String?
     private let chunkDurationSeconds: Double = 3.0
     private let sampleRate: Int = 16000
 
@@ -48,7 +48,7 @@ final class TranscriptionEngine: @unchecked Sendable {
     /// WhisperKit handles download + load + prewarm internally.
     func loadModel(
         modelName: String,
-        language: String,
+        language: String?,
         onPhaseChange: @escaping @Sendable (ModelPhase) -> Void
     ) async -> Bool {
         self.language = language
@@ -131,6 +131,7 @@ final class TranscriptionEngine: @unchecked Sendable {
                         language: self.language,
                         temperature: 0,
                         usePrefillPrompt: true,
+                        detectLanguage: self.language == nil,
                         skipSpecialTokens: true,
                         withoutTimestamps: true,
                         clipTimestamps: []
@@ -194,6 +195,7 @@ final class TranscriptionEngine: @unchecked Sendable {
                         language: self.language,
                         temperature: 0,
                         usePrefillPrompt: true,
+                        detectLanguage: self.language == nil,
                         skipSpecialTokens: true,
                         withoutTimestamps: true,
                         clipTimestamps: []

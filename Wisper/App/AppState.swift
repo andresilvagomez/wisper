@@ -56,7 +56,7 @@ final class AppState: ObservableObject {
 
     @AppStorage("transcriptionMode") var transcriptionMode: TranscriptionMode = .streaming
     @AppStorage("recordingMode") var recordingMode: RecordingMode = .pushToTalk
-    @AppStorage("selectedLanguage") var selectedLanguage = "es"
+    @AppStorage("selectedLanguage") var selectedLanguage = "auto"
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding = false
     @AppStorage("launchAtLogin") var launchAtLogin = false
     @AppStorage("selectedInputDeviceUID") var selectedInputDeviceUID = ""
@@ -71,6 +71,7 @@ final class AppState: ObservableObject {
     // MARK: - Available Languages
 
     static let availableLanguages: [(code: String, name: String)] = [
+        ("auto", "Auto (Detect language)"),
         ("es", "Español"),
         ("en", "English"),
         ("pt", "Português"),
@@ -361,7 +362,7 @@ final class AppState: ObservableObject {
 
         let engine = transcriptionEngine
         let model = selectedModel
-        let lang = selectedLanguage
+        let lang = selectedLanguage == "auto" ? nil : selectedLanguage
 
         let phaseHandler: @Sendable (ModelPhase) -> Void = { [weak self] phase in
             Task { @MainActor in
