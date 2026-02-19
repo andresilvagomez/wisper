@@ -7,8 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04513B3B50274B201FC2129B /* OnboardingStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6CC326D672D68089F68B9A /* OnboardingStateMachineTests.swift */; };
 		11F3E04FF1B5A228B6F9AFCF /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B5699B345259613E791401D /* MenuBarView.swift */; };
 		1BE5E9211BF7F99CB7EB8285 /* ModelPhaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58165ED5E4FA2B1A1A5AF293 /* ModelPhaseTests.swift */; };
+		1E5187DD8C5EDEAF8B1A2A9D /* OnboardingStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A34F582F8D9C1474CA800C /* OnboardingStateMachine.swift */; };
 		33503FC6BA33AD60EB62B7FC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1A1C197449D7A4DCB9AB8B /* SettingsView.swift */; };
 		5F0EA8CABD35F818E187ED97 /* ModelPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFBFB4110D3F513EF2143F88 /* ModelPhase.swift */; };
 		5F1112BDAF977A66901A3260 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = CD4D23D81DB6B8CF7A547851 /* KeyboardShortcuts */; };
@@ -52,7 +54,9 @@
 		A72340CE707E7F9FE2756590 /* HotkeyManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManagerTests.swift; sourceTree = "<group>"; };
 		AE1A1C197449D7A4DCB9AB8B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AFA750A1E71974D953615113 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
+		B1A34F582F8D9C1474CA800C /* OnboardingStateMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateMachine.swift; sourceTree = "<group>"; };
 		B60C033C519A0DD7D449A568 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
+		CE6CC326D672D68089F68B9A /* OnboardingStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateMachineTests.swift; sourceTree = "<group>"; };
 		D6531AD8C825A639F86871E1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DA1DC99BBCCEEE22C84D397F /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		EE73A31643EBC9B6CCCB80F8 /* TextInjectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInjectorTests.swift; sourceTree = "<group>"; };
@@ -96,6 +100,7 @@
 			children = (
 				605B21CF9B309D356CD4E69E /* AppState.swift */,
 				FFBFB4110D3F513EF2143F88 /* ModelPhase.swift */,
+				B1A34F582F8D9C1474CA800C /* OnboardingStateMachine.swift */,
 				5DA399349B832D6632053FDA /* WisperApp.swift */,
 			);
 			path = App;
@@ -118,6 +123,7 @@
 				81BB0AE0FC393F48AC134D38 /* HallucinationFilterTests.swift */,
 				A72340CE707E7F9FE2756590 /* HotkeyManagerTests.swift */,
 				58165ED5E4FA2B1A1A5AF293 /* ModelPhaseTests.swift */,
+				CE6CC326D672D68089F68B9A /* OnboardingStateMachineTests.swift */,
 				EE73A31643EBC9B6CCCB80F8 /* TextInjectorTests.swift */,
 			);
 			path = WisperTests;
@@ -271,6 +277,7 @@
 				9DFCD4F2F625CE656DA0314A /* HallucinationFilterTests.swift in Sources */,
 				CA0EA91AD2DD5F7149021001 /* HotkeyManagerTests.swift in Sources */,
 				1BE5E9211BF7F99CB7EB8285 /* ModelPhaseTests.swift in Sources */,
+				04513B3B50274B201FC2129B /* OnboardingStateMachineTests.swift in Sources */,
 				E2FBDAE8DBBA618B42061D73 /* TextInjectorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -284,6 +291,7 @@
 				E859E4CF65380BB0EF8CC981 /* HotkeyManager.swift in Sources */,
 				11F3E04FF1B5A228B6F9AFCF /* MenuBarView.swift in Sources */,
 				5F0EA8CABD35F818E187ED97 /* ModelPhase.swift in Sources */,
+				1E5187DD8C5EDEAF8B1A2A9D /* OnboardingStateMachine.swift in Sources */,
 				6E015D3819CFBF592FE225ED /* OnboardingView.swift in Sources */,
 				33503FC6BA33AD60EB62B7FC /* SettingsView.swift in Sources */,
 				E11B54ECA8D9F9426E7B92E8 /* TextInjector.swift in Sources */,

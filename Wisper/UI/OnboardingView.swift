@@ -30,8 +30,18 @@ struct OnboardingView: View {
         }
     }
 
-    private var canContinueFromPermissions: Bool {
-        !appState.needsAccessibility && !appState.needsMicrophone
+    private var onboardingMachine: OnboardingStateMachine {
+        OnboardingStateMachine(
+            currentStep: OnboardingStep(rawValue: currentStep) ?? .welcome,
+            needsAccessibility: appState.needsAccessibility,
+            needsMicrophone: appState.needsMicrophone,
+            modelIsReady: appState.modelPhase.isReady,
+            modelIsLoading: appState.modelPhase.isActive
+        )
+    }
+
+    private var shortcutAdvisory: ShortcutAdvisory {
+        ShortcutConflictEvaluator.advisory(for: KeyboardShortcuts.getShortcut(for: HotkeyManager.shortcutName))
     }
 
     // MARK: - Header
@@ -65,7 +75,9 @@ struct OnboardingView: View {
         HStack {
             if currentStep > 0 {
                 Button("Atrás") {
-                    withAnimation { currentStep -= 1 }
+                    var machine = onboardingMachine
+                    machine.goBack()
+                    withAnimation { currentStep = machine.currentStep.rawValue }
                 }
                 .keyboardShortcut(.cancelAction)
             }
@@ -75,31 +87,59 @@ struct OnboardingView: View {
             switch currentStep {
             case 0:
                 Button("Continuar") {
-                    withAnimation { currentStep = 1 }
+                    var machine = onboardingMachine
+                    machine.goToNextPrimaryStep()
+                    withAnimation { currentStep = machine.currentStep.rawValue }
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
             case 1:
-                Button("Continuar") {
-                    withAnimation { currentStep = 2 }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!canContinueFromPermissions)
-                .keyboardShortcut(.defaultAction)
-            default:
-                if appState.modelPhase.isReady {
-                    Button("Empezar a usar Wisper") {
-                        appState.hasCompletedOnboarding = true
-                        NSApplication.shared.keyWindow?.close()
+                HStack(spacing: 10) {
+                    if !onboardingMachine.canContinueFromPermissions {
+                        Button("Continuar de todas formas") {
+                            var machine = onboardingMachine
+                            machine.goToNextPrimaryStep()
+                            withAnimation { currentStep = machine.currentStep.rawValue }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
+                    Button(onboardingMachine.canContinueFromPermissions ? "Continuar" : "Continuar con permisos")
+                    {
+                        var machine = onboardingMachine
+                        machine.goToNextPrimaryStep()
+                        withAnimation { currentStep = machine.currentStep.rawValue }
                     }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
+                }
+            default:
+                if onboardingMachine.canFinishOnboarding {
+                    HStack(spacing: 10) {
+                        if onboardingMachine.canStartTest {
+                            Button("Probar ahora") {
+                                appState.hasCompletedOnboarding = true
+                                NSApplication.shared.keyWindow?.close()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                    appState.startRecording()
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                        }
+
+                        Button("Empezar a usar Wisper") {
+                            appState.hasCompletedOnboarding = true
+                            NSApplication.shared.keyWindow?.close()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .keyboardShortcut(.defaultAction)
+                    }
                 } else {
                     Button("Cargar modelo") {
                         Task { await appState.loadModel() }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(appState.modelPhase.isActive)
+                    .disabled(!onboardingMachine.canLoadModel)
                     .keyboardShortcut(.defaultAction)
                 }
             }
@@ -169,7 +209,8 @@ struct OnboardingView: View {
                 buttonTitle: appState.needsMicrophone ? "Conceder acceso" : "Concedido",
                 buttonAction: {
                     Task { await appState.requestMicrophonePermission() }
-                }
+                },
+                helpMessage: microphoneHelpText
             )
 
             permissionCard(
@@ -179,7 +220,8 @@ struct OnboardingView: View {
                 buttonTitle: appState.needsAccessibility ? "Abrir ajuste" : "Concedido",
                 buttonAction: {
                     appState.refreshPermissionState(requestAccessibilityPrompt: true)
-                }
+                },
+                helpMessage: accessibilityHelpText
             )
 
             HStack(spacing: 10) {
@@ -188,12 +230,12 @@ struct OnboardingView: View {
                 }
                 .buttonStyle(.bordered)
 
-                if canContinueFromPermissions {
+                if onboardingMachine.canContinueFromPermissions {
                     Label("Todo listo", systemImage: "checkmark.circle.fill")
                         .foregroundColor(.green)
                         .font(.callout)
                 } else {
-                    Text("Concede ambos permisos para continuar")
+                    Text("Puedes continuar y reintentar luego sin bloquear la app")
                         .font(.callout)
                         .foregroundColor(.secondary)
                 }
@@ -210,27 +252,37 @@ struct OnboardingView: View {
         title: String,
         granted: Bool,
         buttonTitle: String,
-        buttonAction: @escaping () -> Void
+        buttonAction: @escaping () -> Void,
+        helpMessage: String
     ) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(granted ? .green : .orange)
-                .frame(width: 28)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(granted ? .green : .orange)
+                    .frame(width: 28)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .fontWeight(.medium)
-                Text(granted ? "Permiso activo" : "Permiso pendiente")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .fontWeight(.medium)
+                    Text(granted ? "Permiso activo" : "Permiso pendiente")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Button(buttonTitle, action: buttonAction)
+                    .buttonStyle(.bordered)
+                    .disabled(granted)
             }
 
-            Spacer()
-
-            Button(buttonTitle, action: buttonAction)
-                .buttonStyle(.bordered)
-                .disabled(granted)
+            if !granted {
+                Text(helpMessage)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(12)
         .background(Color.secondary.opacity(0.08))
@@ -249,9 +301,13 @@ struct OnboardingView: View {
                 .foregroundColor(.secondary)
 
             GroupBox("Atajo global") {
-                HStack {
-                    KeyboardShortcuts.Recorder("Grabar", name: HotkeyManager.shortcutName)
-                    Spacer()
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        KeyboardShortcuts.Recorder("Grabar", name: HotkeyManager.shortcutName)
+                        Spacer()
+                    }
+
+                    shortcutAdvisoryView
                 }
                 .padding(.top, 2)
             }
@@ -314,6 +370,67 @@ struct OnboardingView: View {
             Text("Pulsa “Cargar modelo” para finalizar.")
                 .font(.caption)
                 .foregroundColor(.secondary)
+        }
+    }
+
+    private var microphoneHelpText: String {
+        switch appState.microphonePermissionStatus {
+        case .authorized:
+            return "Micrófono listo."
+        case .notDetermined:
+            return "Pulsa “Conceder acceso” y acepta el diálogo de macOS."
+        case .denied, .restricted:
+            return "Abre Ajustes del Sistema > Privacidad y Seguridad > Micrófono y habilita Wisper."
+        @unknown default:
+            return "Verifica el permiso en Ajustes del Sistema."
+        }
+    }
+
+    private var accessibilityHelpText: String {
+        if appState.needsAccessibility {
+            return "Abre Ajustes del Sistema > Privacidad y Seguridad > Accesibilidad y activa Wisper. Luego usa “Verificar de nuevo”."
+        }
+        return "Accesibilidad lista."
+    }
+
+    @ViewBuilder
+    private var shortcutAdvisoryView: some View {
+        let advisory = shortcutAdvisory
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: advisoryIcon(for: advisory.level))
+                .foregroundColor(advisoryColor(for: advisory.level))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(advisory.title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                Text(advisory.message)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+        }
+    }
+
+    private func advisoryIcon(for level: ShortcutAdvisoryLevel) -> String {
+        switch level {
+        case .info:
+            return "checkmark.circle.fill"
+        case .warning:
+            return "exclamationmark.circle.fill"
+        case .critical:
+            return "xmark.octagon.fill"
+        }
+    }
+
+    private func advisoryColor(for level: ShortcutAdvisoryLevel) -> Color {
+        switch level {
+        case .info:
+            return .green
+        case .warning:
+            return .orange
+        case .critical:
+            return .red
         }
     }
 }

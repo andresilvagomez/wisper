@@ -171,19 +171,17 @@ struct MenuBarView: View {
 
     private var accessibilityWarning: some View {
         Button(action: {
-            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                NSWorkspace.shared.open(url)
-            }
+            appState.openSystemSettings(.accessibility)
         }) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.orange)
                     .font(.caption)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Accessibility required")
+                    Text("Falta Accesibilidad")
                         .font(.caption)
                         .fontWeight(.medium)
-                    Text("Tap to open Settings")
+                    Text("Pulsa para abrir Ajustes")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -199,19 +197,17 @@ struct MenuBarView: View {
 
     private var microphoneWarning: some View {
         Button(action: {
-            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
-                NSWorkspace.shared.open(url)
-            }
+            appState.openSystemSettings(.microphone)
         }) {
             HStack(spacing: 8) {
                 Image(systemName: "mic.slash.fill")
                     .foregroundColor(.red)
                     .font(.caption)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Microphone required")
+                    Text("Falta Micrófono")
                         .font(.caption)
                         .fontWeight(.medium)
-                    Text("Tap to open Settings")
+                    Text("Pulsa para abrir Ajustes")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }

@@ -22,6 +22,7 @@ final class AppState: ObservableObject {
     @Published var audioLevel: Float = 0
     @Published var needsAccessibility = false
     @Published var needsMicrophone = false
+    @Published var microphonePermissionStatus: AVAuthorizationStatus = .notDetermined
 
     // MARK: - Overlay
 
@@ -134,6 +135,7 @@ final class AppState: ObservableObject {
         needsAccessibility = !(textInjector?.hasAccessibility ?? false)
 
         let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+        microphonePermissionStatus = micStatus
         needsMicrophone = (micStatus != .authorized)
         print("[Wisper] Microphone permission: \(micStatus.rawValue) (0=notDetermined, 1=restricted, 2=denied, 3=authorized)")
 
@@ -142,6 +144,7 @@ final class AppState: ObservableObject {
                 let granted = await AudioEngine.requestPermission()
                 await MainActor.run {
                     self.needsMicrophone = !granted
+                    self.microphonePermissionStatus = granted ? .authorized : AVCaptureDevice.authorizationStatus(for: .audio)
                     print("[Wisper] Microphone permission granted: \(granted)")
                 }
             }
@@ -149,9 +152,37 @@ final class AppState: ObservableObject {
     }
 
     func requestMicrophonePermission() async {
-        let granted = await AudioEngine.requestPermission()
-        needsMicrophone = !granted
-        print("[Wisper] Microphone permission granted: \(granted)")
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        if status == .notDetermined {
+            let granted = await AudioEngine.requestPermission()
+            needsMicrophone = !granted
+            microphonePermissionStatus = granted ? .authorized : AVCaptureDevice.authorizationStatus(for: .audio)
+            print("[Wisper] Microphone permission granted: \(granted)")
+            return
+        }
+
+        refreshPermissionState()
+        if status == .denied || status == .restricted {
+            openSystemSettings(.microphone)
+        }
+    }
+
+    enum SystemPermission {
+        case accessibility
+        case microphone
+    }
+
+    func openSystemSettings(_ permission: SystemPermission) {
+        let urlString: String
+        switch permission {
+        case .accessibility:
+            urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+        case .microphone:
+            urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
+        }
+
+        guard let url = URL(string: urlString) else { return }
+        NSWorkspace.shared.open(url)
     }
 
     func toggleRecording() {
