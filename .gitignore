@@ -15,3 +15,7 @@ DerivedData/
 .build/
 Packages/
 Package.resolved
+
+# Craft/Codex runtime artifacts
+events.jsonl
+sessions/
