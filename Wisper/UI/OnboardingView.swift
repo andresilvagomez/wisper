@@ -24,7 +24,7 @@ struct OnboardingView: View {
             appState.refreshPermissionState()
             if appState.hasCompletedOnboarding {
                 DispatchQueue.main.async {
-                    NSApp.windows.first { $0.title == "Wisper Setup" }?.close()
+                    NSApp.windows.first { $0.title == L10n.t("window.onboarding.title") }?.close()
                 }
             }
         }
@@ -53,7 +53,7 @@ struct OnboardingView: View {
                     .font(.title2)
                     .fontWeight(.semibold)
                 Spacer()
-                Text("Paso \(currentStep + 1) de 3")
+                Text(L10n.f("onboarding.header.step_of", currentStep + 1, 3))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -347,7 +347,7 @@ struct OnboardingView: View {
         case .downloading(let progress):
             VStack(alignment: .leading, spacing: 6) {
                 ProgressView(value: progress)
-                Text(String(format: "Descargando… %.0f%%", progress * 100))
+                Text(L10n.f("onboarding.model.downloading_percent", progress * 100))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -376,21 +376,21 @@ struct OnboardingView: View {
     private var microphoneHelpText: String {
         switch appState.microphonePermissionStatus {
         case .authorized:
-            return "Micrófono listo."
+            return L10n.t("onboarding.permissions.microphone.ready")
         case .notDetermined:
-            return "Pulsa “Conceder acceso” y acepta el diálogo de macOS."
+            return L10n.t("onboarding.permissions.microphone.not_determined")
         case .denied, .restricted:
-            return "Abre Ajustes del Sistema > Privacidad y Seguridad > Micrófono y habilita Wisper."
+            return L10n.t("onboarding.permissions.microphone.denied")
         @unknown default:
-            return "Verifica el permiso en Ajustes del Sistema."
+            return L10n.t("onboarding.permissions.microphone.unknown")
         }
     }
 
     private var accessibilityHelpText: String {
         if appState.needsAccessibility {
-            return "Abre Ajustes del Sistema > Privacidad y Seguridad > Accesibilidad y activa Wisper. Luego usa “Verificar de nuevo”."
+            return L10n.t("onboarding.permissions.accessibility.pending")
         }
-        return "Accesibilidad lista."
+        return L10n.t("onboarding.permissions.accessibility.ready")
     }
 
     @ViewBuilder

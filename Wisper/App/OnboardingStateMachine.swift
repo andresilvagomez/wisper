@@ -63,8 +63,8 @@ enum ShortcutConflictEvaluator {
         guard let shortcut else {
             return ShortcutAdvisory(
                 level: .warning,
-                title: "Define un atajo",
-                message: "Selecciona una combinación para grabar sin abrir la configuración."
+                title: L10n.t("shortcut_advisory.define_shortcut.title"),
+                message: L10n.t("shortcut_advisory.define_shortcut.message")
             )
         }
 
@@ -74,47 +74,47 @@ enum ShortcutConflictEvaluator {
         if modifiers.isEmpty {
             return ShortcutAdvisory(
                 level: .critical,
-                title: "Atajo inválido",
-                message: "Incluye al menos una tecla modificadora (⌘, ⌥, ⌃ o ⇧)."
+                title: L10n.t("shortcut_advisory.invalid.title"),
+                message: L10n.t("shortcut_advisory.invalid.message")
             )
         }
 
         if modifiers == [.command], key == .space {
             return ShortcutAdvisory(
                 level: .critical,
-                title: "Conflicto fuerte detectado",
-                message: "⌘Space suele abrir Spotlight. Elige otro atajo para evitar bloqueos."
+                title: L10n.t("shortcut_advisory.strong_conflict.title"),
+                message: L10n.t("shortcut_advisory.spotlight.message")
             )
         }
 
         if modifiers == [.command], key == .tab {
             return ShortcutAdvisory(
                 level: .critical,
-                title: "Conflicto fuerte detectado",
-                message: "⌘Tab cambia de aplicación y puede impedir la grabación."
+                title: L10n.t("shortcut_advisory.strong_conflict.title"),
+                message: L10n.t("shortcut_advisory.cmd_tab.message")
             )
         }
 
         if modifiers == [.control], key == .space {
             return ShortcutAdvisory(
                 level: .warning,
-                title: "Posible conflicto",
-                message: "⌃Space suele cambiar idioma de teclado en macOS."
+                title: L10n.t("shortcut_advisory.possible_conflict.title"),
+                message: L10n.t("shortcut_advisory.ctrl_space.message")
             )
         }
 
         if modifiers.contains(.command), key == .q {
             return ShortcutAdvisory(
                 level: .warning,
-                title: "Posible conflicto",
-                message: "Combinar ⌘ con Q puede cerrar apps accidentalmente."
+                title: L10n.t("shortcut_advisory.possible_conflict.title"),
+                message: L10n.t("shortcut_advisory.cmd_q.message")
             )
         }
 
         return ShortcutAdvisory(
             level: .info,
-            title: "Atajo recomendado",
-            message: "Si no funciona en una app específica, cambia a una combinación menos común."
+            title: L10n.t("shortcut_advisory.recommended.title"),
+            message: L10n.t("shortcut_advisory.recommended.message")
         )
     }
 }

@@ -98,9 +98,14 @@ struct RecordingIndicatorContent: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
-        .clipShape(Capsule())
-        .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 4)
+        .background(
+            Capsule()
+                .fill(Color(nsColor: .controlBackgroundColor))
+                .overlay(
+                    Capsule()
+                        .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+                )
+        )
         .onAppear {
             pulse = true
             appState.refreshInputDevices()
@@ -120,26 +125,35 @@ final class OverlayWindowController {
         // Remember which app is active BEFORE we show anything
         let previousApp = NSWorkspace.shared.frontmostApplication
 
+        let contentHeight: CGFloat = 48
+        let contentWidth: CGFloat = appState.hasMultipleInputDevices ? 360 : 200
+
         let content = RecordingIndicatorContent()
             .environmentObject(appState)
 
-        let panelWidth: CGFloat = appState.hasMultipleInputDevices ? 360 : 200
+        let panelWidth = contentWidth
+        let panelHeight = contentHeight
         let hostingView = NSHostingView(rootView: AnyView(content))
-        hostingView.frame = NSRect(x: 0, y: 0, width: panelWidth, height: 48)
+        hostingView.frame = NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight)
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
 
         let panel = FloatingPanel(
-            contentRect: NSRect(x: 0, y: 0, width: panelWidth, height: 48),
-            styleMask: [.nonactivatingPanel, .fullSizeContentView],
+            contentRect: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight),
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
 
         panel.isOpaque = false
         panel.backgroundColor = .clear
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
         panel.level = .statusBar
         panel.hasShadow = false
         panel.contentView = hostingView
-        panel.isMovableByWindowBackground = true
+        panel.isMovableByWindowBackground = false
+        panel.isMovable = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.hidesOnDeactivate = false
 

@@ -5,11 +5,29 @@ import SwiftUI
 enum TranscriptionMode: String, CaseIterable {
     case streaming = "Streaming"
     case onRelease = "On Release"
+
+    var localizedTitle: String {
+        switch self {
+        case .streaming:
+            return L10n.t("transcription.mode.streaming")
+        case .onRelease:
+            return L10n.t("transcription.mode.on_release")
+        }
+    }
 }
 
 enum RecordingMode: String, CaseIterable {
     case pushToTalk = "Push to Talk"
     case toggle = "Toggle"
+
+    var localizedTitle: String {
+        switch self {
+        case .pushToTalk:
+            return L10n.t("recording.mode.push_to_talk")
+        case .toggle:
+            return L10n.t("recording.mode.toggle")
+        }
+    }
 }
 
 @MainActor
@@ -32,7 +50,7 @@ final class AppState: ObservableObject {
     // MARK: - Model State
 
     @Published var modelPhase: ModelPhase = .idle
-    @Published var selectedModel = "openai_whisper-base"
+    @AppStorage("selectedModel") var selectedModel = "openai_whisper-base"
 
     // MARK: - Settings
 
@@ -71,8 +89,17 @@ final class AppState: ObservableObject {
         ("openai_whisper-large-v3-v20240930", "Large V3 (Highest quality)", "~1.5 GB"),
     ]
 
+    /// Priority from highest quality to lowest quality.
+    static let modelQualityPriority: [String] = [
+        "openai_whisper-large-v3-v20240930",
+        "openai_whisper-large-v3-v20240930_turbo",
+        "openai_whisper-small",
+        "openai_whisper-base",
+    ]
+
     init() {
         setupEngines()
+        applyBestDownloadedModelAsDefaultIfNeeded()
         Task { [weak self] in
             await self?.loadModel()
         }
@@ -98,7 +125,12 @@ final class AppState: ObservableObject {
                     self.confirmedText += text + " "
                     self.partialText = ""
                     if self.transcriptionMode == .streaming {
-                        self.textInjector?.typeText(text)
+                        self.textInjector?.typeText(
+                            text,
+                            clipboardAfterInjection: self.confirmedText
+                        )
+                    } else {
+                        self.textInjector?.copyAccumulatedTextToClipboard(self.confirmedText)
                     }
                 }
             }
@@ -203,7 +235,7 @@ final class AppState: ObservableObject {
     var selectedInputDeviceName: String {
         availableInputDevices.first(where: { $0.id == selectedInputDeviceUID })?.name
             ?? availableInputDevices.first?.name
-            ?? "Micrófono"
+            ?? L10n.t("audio.input.fallback")
     }
 
     func refreshInputDevices() {
@@ -304,7 +336,10 @@ final class AppState: ObservableObject {
                     let partial = self.partialText.trimmingCharacters(in: .whitespacesAndNewlines)
                     let textToInject = !confirmed.isEmpty ? confirmed : partial
                     guard !textToInject.isEmpty else { return }
-                    self.textInjector?.typeText(textToInject)
+                    self.textInjector?.typeText(
+                        textToInject,
+                        clipboardAfterInjection: textToInject
+                    )
                 }
             }
         } else {
@@ -344,5 +379,44 @@ final class AppState: ObservableObject {
     func reloadModel() {
         guard !isRecording, !modelPhase.isActive else { return }
         Task { await loadModel() }
+    }
+
+    private func applyBestDownloadedModelAsDefaultIfNeeded() {
+        let downloadedModelIDs = Self.downloadedModelIDs()
+        guard !downloadedModelIDs.isEmpty else { return }
+
+        // Respect user preference if their chosen model is already downloaded.
+        if downloadedModelIDs.contains(selectedModel) {
+            return
+        }
+
+        if let bestDownloaded = Self.modelQualityPriority.first(where: { downloadedModelIDs.contains($0) }) {
+            selectedModel = bestDownloaded
+            print("[Wisper] ✅ Selected best downloaded model as default: \(bestDownloaded)")
+        }
+    }
+
+    private static func downloadedModelIDs() -> Set<String> {
+        guard let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return []
+        }
+
+        let modelsRoot = documentsURL
+            .appendingPathComponent("huggingface", isDirectory: true)
+            .appendingPathComponent("models", isDirectory: true)
+            .appendingPathComponent("argmaxinc", isDirectory: true)
+            .appendingPathComponent("whisperkit-coreml", isDirectory: true)
+
+        return Set(availableModels.compactMap { model in
+            let modelFolder = modelsRoot.appendingPathComponent(model.id, isDirectory: true)
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: modelFolder.path, isDirectory: &isDirectory),
+                  isDirectory.boolValue else {
+                return nil
+            }
+
+            let hasFiles = ((try? FileManager.default.contentsOfDirectory(atPath: modelFolder.path))?.isEmpty == false)
+            return hasFiles ? model.id : nil
+        })
     }
 }

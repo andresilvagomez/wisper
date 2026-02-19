@@ -27,13 +27,14 @@ final class TextInjector: @unchecked Sendable {
         print("[Wisper] TextInjector: target app = \(targetApp?.localizedName ?? "none") (pid: \(targetApp?.processIdentifier ?? 0))")
     }
 
-    func typeText(_ text: String) {
+    func typeText(_ text: String, clipboardAfterInjection: String? = nil) {
         guard !text.isEmpty else { return }
 
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
         let textToInject = trimmed + " "
+        setClipboard(textToInject, synchronously: true)
 
         hasAccessibility = AXIsProcessTrusted()
         print("[Wisper] 📋 typeText: \"\(textToInject)\" | accessibility=\(hasAccessibility) | target=\(targetApp?.localizedName ?? "none")")
@@ -55,21 +56,56 @@ final class TextInjector: @unchecked Sendable {
             // 2. Try direct AX insertion (primary)
             if self.injectTextViaAccessibility(textToInject) {
                 print("[Wisper] ✅ Injected via AXSelectedTextAttribute")
+                if let clipboardAfterInjection {
+                    self.setClipboard(clipboardAfterInjection)
+                }
                 return
             }
 
             print("[Wisper] ↩️ Falling back to clipboard + Cmd+V")
 
-            // 3. Clipboard fallback
-            DispatchQueue.main.sync {
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setString(textToInject, forType: .string)
-            }
-            print("[Wisper] 📋 Clipboard set")
-
-            // 4. Simulate Cmd+V
+            // 3. Simulate Cmd+V (clipboard already set above)
             self.simulateCmdV()
+
+            if let clipboardAfterInjection {
+                self.setClipboard(clipboardAfterInjection, delay: 0.12)
+            }
+        }
+    }
+
+    func copyAccumulatedTextToClipboard(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        setClipboard(trimmed, synchronously: true)
+    }
+
+    private func setClipboard(_ text: String, synchronously: Bool = false, delay: TimeInterval = 0) {
+        let write = {
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(text, forType: .string)
+            print("[Wisper] 📋 Clipboard updated (\(text.count) chars)")
+        }
+
+        if delay > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                write()
+            }
+            return
+        }
+
+        if synchronously {
+            if Thread.isMainThread {
+                write()
+            } else {
+                DispatchQueue.main.sync {
+                    write()
+                }
+            }
+        } else {
+            DispatchQueue.main.async {
+                write()
+            }
         }
     }
 

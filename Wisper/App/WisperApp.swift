@@ -24,7 +24,7 @@ struct WisperApp: App {
                 .environmentObject(appState)
         }
 
-        Window("Wisper Setup", id: "onboarding") {
+        Window(String(localized: "window.onboarding.title"), id: "onboarding") {
             OnboardingView()
                 .environmentObject(appState)
         }

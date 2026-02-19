@@ -77,7 +77,7 @@ struct MenuBarView: View {
             return shortcut.description
         }
 
-        return "No shortcut"
+        return L10n.t("menu.no_shortcut")
     }
 
     private var statusColor: Color {
@@ -91,14 +91,14 @@ struct MenuBarView: View {
     }
 
     private var statusText: String {
-        if appState.isRecording { return "Recording..." }
+        if appState.isRecording { return L10n.t("menu.status.recording") }
         switch appState.modelPhase {
-        case .ready: return "Ready"
+        case .ready: return L10n.t("menu.status.ready")
         case .downloading(let p):
-            return String(format: "Downloading... %.0f%%", p * 100)
+            return L10n.f("menu.status.downloading_percent", p * 100)
         case .loading(let step): return step
-        case .error: return "Error loading model"
-        case .idle: return "Starting..."
+        case .error: return L10n.t("menu.status.error_loading_model")
+        case .idle: return L10n.t("menu.status.starting")
         }
     }
 
@@ -266,7 +266,7 @@ struct MenuBarView: View {
             }
 
             SettingsLink {
-                Label("Settings...", systemImage: "gear")
+                Label(L10n.t("menu.settings"), systemImage: "gear")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)
@@ -279,7 +279,7 @@ struct MenuBarView: View {
                 appState.cleanup()
                 NSApplication.shared.terminate(nil)
             }) {
-                Label("Quit Wisper", systemImage: "power")
+                Label(L10n.t("menu.quit"), systemImage: "power")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)

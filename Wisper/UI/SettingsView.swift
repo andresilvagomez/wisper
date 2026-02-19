@@ -59,13 +59,13 @@ struct GeneralSettingsTab: View {
 
                 Picker("Mode", selection: $appState.recordingMode) {
                     ForEach(RecordingMode.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
+                        Text(mode.localizedTitle).tag(mode)
                     }
                 }
 
                 Picker("Text injection", selection: $appState.transcriptionMode) {
                     ForEach(TranscriptionMode.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
+                        Text(mode.localizedTitle).tag(mode)
                     }
                 }
             }
