@@ -13,6 +13,8 @@
 		1D039FC3C61C539C24C89701 /* AudioInputDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 650D445E872FA40AA2D7ED0D /* AudioInputDevice.swift */; };
 		1E5187DD8C5EDEAF8B1A2A9D /* OnboardingStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A34F582F8D9C1474CA800C /* OnboardingStateMachine.swift */; };
 		33503FC6BA33AD60EB62B7FC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1A1C197449D7A4DCB9AB8B /* SettingsView.swift */; };
+		3478CD2A37E7F5763A270080 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F88A6895E16ED935468DEB9E /* GoogleService-Info.plist */; };
+		3D8DD76D91A768E9484C1330 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = BE4037B80AFC991BBFD79363 /* FirebaseCore */; };
 		5F0EA8CABD35F818E187ED97 /* ModelPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFBFB4110D3F513EF2143F88 /* ModelPhase.swift */; };
 		5F1112BDAF977A66901A3260 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = CD4D23D81DB6B8CF7A547851 /* KeyboardShortcuts */; };
 		6E015D3819CFBF592FE225ED /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1DC99BBCCEEE22C84D397F /* OnboardingView.swift */; };
@@ -28,11 +30,13 @@
 		CA9F9D168DC589A630CBB993 /* TranscriptionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3327C47D203EDA652D316DCC /* TranscriptionOverlay.swift */; };
 		E11B54ECA8D9F9426E7B92E8 /* TextInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EA9B8726D557B2D7E43491E /* TextInjector.swift */; };
 		E2FBDAE8DBBA618B42061D73 /* TextInjectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE73A31643EBC9B6CCCB80F8 /* TextInjectorTests.swift */; };
+		E6440DB694B029172FF42F73 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = BD01D6CD697A2B1831D6BA40 /* FirebaseCrashlytics */; };
 		E78922635564CAB022849177 /* LanguageSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 140D520F0CA7612CBFFA5262 /* LanguageSupportTests.swift */; };
 		E854457A97290BF59F165F5D /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 999E1171F448A3ED7E4F29D4 /* Localizable.strings */; };
 		E859E4CF65380BB0EF8CC981 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFA750A1E71974D953615113 /* HotkeyManager.swift */; };
 		EFEFB564D754AB6EC8305BE2 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 605B21CF9B309D356CD4E69E /* AppState.swift */; };
 		F01444EECE5B1F433532A627 /* ModelDownloadCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD4D1FF931C65A38F93AFC1D /* ModelDownloadCacheTests.swift */; };
+		F699214553237E96FCE7114D /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72109C7C436060EB163436C9 /* CrashReporter.swift */; };
 		FBBF98E089352274B475460D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F731D5C15FA4D99191A12C03 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -62,6 +66,7 @@
 		605B21CF9B309D356CD4E69E /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		650D445E872FA40AA2D7ED0D /* AudioInputDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioInputDevice.swift; sourceTree = "<group>"; };
 		6B5699B345259613E791401D /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		72109C7C436060EB163436C9 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		81BB0AE0FC393F48AC134D38 /* HallucinationFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HallucinationFilterTests.swift; sourceTree = "<group>"; };
 		87383B756FBA7C899AD44759 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		88CC380054CCDCB89A2617A9 /* Wisper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Wisper.entitlements; sourceTree = "<group>"; };
@@ -78,6 +83,7 @@
 		DA1DC99BBCCEEE22C84D397F /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		EE73A31643EBC9B6CCCB80F8 /* TextInjectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInjectorTests.swift; sourceTree = "<group>"; };
 		F731D5C15FA4D99191A12C03 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F88A6895E16ED935468DEB9E /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		FC3C4C7DA684D1F0D798AA8C /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		FFBFB4110D3F513EF2143F88 /* ModelPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelPhase.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -89,6 +95,8 @@
 			files = (
 				8D918EEB22D4A8A19A3D7F10 /* WhisperKit in Frameworks */,
 				5F1112BDAF977A66901A3260 /* KeyboardShortcuts in Frameworks */,
+				3D8DD76D91A768E9484C1330 /* FirebaseCore in Frameworks */,
+				E6440DB694B029172FF42F73 /* FirebaseCrashlytics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +133,7 @@
 			isa = PBXGroup;
 			children = (
 				605B21CF9B309D356CD4E69E /* AppState.swift */,
+				72109C7C436060EB163436C9 /* CrashReporter.swift */,
 				FFBFB4110D3F513EF2143F88 /* ModelPhase.swift */,
 				B1A34F582F8D9C1474CA800C /* OnboardingStateMachine.swift */,
 				5DA399349B832D6632053FDA /* WisperApp.swift */,
@@ -189,6 +198,7 @@
 			isa = PBXGroup;
 			children = (
 				F731D5C15FA4D99191A12C03 /* Assets.xcassets */,
+				F88A6895E16ED935468DEB9E /* GoogleService-Info.plist */,
 				D6531AD8C825A639F86871E1 /* Info.plist */,
 				999E1171F448A3ED7E4F29D4 /* Localizable.strings */,
 				88CC380054CCDCB89A2617A9 /* Wisper.entitlements */,
@@ -247,6 +257,8 @@
 			packageProductDependencies = (
 				881A0D3BFF15A3BDB41BFE53 /* WhisperKit */,
 				CD4D23D81DB6B8CF7A547851 /* KeyboardShortcuts */,
+				BE4037B80AFC991BBFD79363 /* FirebaseCore */,
+				BD01D6CD697A2B1831D6BA40 /* FirebaseCrashlytics */,
 			);
 			productName = Wisper;
 			productReference = 5FC2128AB850E5E028E8CB45 /* Wisper.app */;
@@ -282,6 +294,7 @@
 			mainGroup = 25A98FB5CAD3AB7FC83D53AE;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				C526534013A37DDD2664F9C5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				71493E620D0F00D77630EC1C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 				24BF4039138F129F95B7DB09 /* XCRemoteSwiftPackageReference "WhisperKit" */,
 			);
@@ -301,6 +314,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FBBF98E089352274B475460D /* Assets.xcassets in Resources */,
+				3478CD2A37E7F5763A270080 /* GoogleService-Info.plist in Resources */,
 				E854457A97290BF59F165F5D /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -331,6 +345,7 @@
 				EFEFB564D754AB6EC8305BE2 /* AppState.swift in Sources */,
 				A987117687A8C6CA0798EBAA /* AudioEngine.swift in Sources */,
 				1D039FC3C61C539C24C89701 /* AudioInputDevice.swift in Sources */,
+				F699214553237E96FCE7114D /* CrashReporter.swift in Sources */,
 				E859E4CF65380BB0EF8CC981 /* HotkeyManager.swift in Sources */,
 				83DCC5A8951EEC7D570763D4 /* L10n.swift in Sources */,
 				11F3E04FF1B5A228B6F9AFCF /* MenuBarView.swift in Sources */,
@@ -443,7 +458,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.andresilvagomez.wisper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.andresilvagomez.whisper;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
 			};
@@ -547,7 +562,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.andresilvagomez.wisper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.andresilvagomez.whisper;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
 			};
@@ -621,6 +636,14 @@
 				minimumVersion = 2.2.0;
 			};
 		};
+		C526534013A37DDD2664F9C5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -628,6 +651,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 24BF4039138F129F95B7DB09 /* XCRemoteSwiftPackageReference "WhisperKit" */;
 			productName = WhisperKit;
+		};
+		BD01D6CD697A2B1831D6BA40 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C526534013A37DDD2664F9C5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
+		BE4037B80AFC991BBFD79363 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C526534013A37DDD2664F9C5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
 		};
 		CD4D23D81DB6B8CF7A547851 /* KeyboardShortcuts */ = {
 			isa = XCSwiftPackageProductDependency;

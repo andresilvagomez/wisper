@@ -4,6 +4,10 @@ import SwiftUI
 struct WisperApp: App {
     @StateObject private var appState = AppState()
 
+    init() {
+        CrashReporter.configureIfAvailable()
+    }
+
     var body: some Scene {
         MenuBarExtra {
             MenuBarView()

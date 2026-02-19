@@ -19,3 +19,7 @@ Package.resolved
 # Craft/Codex runtime artifacts
 events.jsonl
 sessions/
+
+# Firebase
+GoogleService-Info.plist
+Wisper/Resources/GoogleService-Info.plist
