@@ -14,6 +14,8 @@ final class AudioEngine: @unchecked Sendable {
 
     func startCapture(
         inputDeviceUID: String? = nil,
+        inputGain: Float = 1.0,
+        noiseGate: Float = 0,
         onBuffer: @escaping AudioBufferHandler,
         onLevel: AudioLevelHandler? = nil
     ) -> Bool {
@@ -74,17 +76,22 @@ final class AudioEngine: @unchecked Sendable {
 
             if let channelData = convertedBuffer.floatChannelData?[0] {
                 let frameLength = Int(convertedBuffer.frameLength)
-                let samples = Array(UnsafeBufferPointer(
+                let rawSamples = Array(UnsafeBufferPointer(
                     start: channelData,
                     count: frameLength
                 ))
-                onBuffer(samples)
+                let tunedSamples = Self.applyInputTuning(
+                    to: rawSamples,
+                    gain: inputGain,
+                    noiseGate: noiseGate
+                )
+                onBuffer(tunedSamples)
 
                 // Calculate RMS level for visualization
                 if let onLevel {
                     var sum: Float = 0
                     for i in 0..<frameLength {
-                        sum += samples[i] * samples[i]
+                        sum += tunedSamples[i] * tunedSamples[i]
                     }
                     let rms = sqrt(sum / Float(max(frameLength, 1)))
                     // Convert RMS to a perceptual range for UI waves:
@@ -110,6 +117,22 @@ final class AudioEngine: @unchecked Sendable {
             self.engine = nil
             self.converter = nil
             return false
+        }
+    }
+
+    static func applyInputTuning(
+        to samples: [Float],
+        gain: Float,
+        noiseGate: Float
+    ) -> [Float] {
+        guard !samples.isEmpty else { return samples }
+        let effectiveGain = max(0.1, min(gain, 6.0))
+        let gate = max(0, min(noiseGate, 0.2))
+
+        return samples.map { sample in
+            let boosted = sample * effectiveGain
+            let gated = abs(boosted) < gate ? 0 : boosted
+            return max(-1, min(1, gated))
         }
     }
 

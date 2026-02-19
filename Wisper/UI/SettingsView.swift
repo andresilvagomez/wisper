@@ -55,6 +55,8 @@ struct GeneralSettingsTab: View {
             Section("Recording") {
                 KeyboardShortcuts.Recorder("Shortcut", name: HotkeyManager.shortcutName)
 
+                Toggle("Whisper mode (quiet voice)", isOn: $appState.whisperModeEnabled)
+
                 if appState.hasMultipleInputDevices {
                     Picker("Input source", selection: $appState.selectedInputDeviceUID) {
                         ForEach(appState.availableInputDevices) { device in

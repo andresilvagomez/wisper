@@ -4,6 +4,8 @@ import Foundation
 
 final class TextInjector: @unchecked Sendable {
     private let pasteQueue = DispatchQueue(label: "com.wisper.textinjector", qos: .userInteractive)
+    private let activationDelayMicros: useconds_t = 220_000
+    private let pasteRetryCount = 3
 
     /// The app that was active when recording started — paste goes here.
     private var targetApp: NSRunningApplication?
@@ -28,12 +30,7 @@ final class TextInjector: @unchecked Sendable {
     }
 
     func typeText(_ text: String, clipboardAfterInjection: String? = nil) {
-        guard !text.isEmpty else { return }
-
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        let textToInject = trimmed + " "
+        guard let textToInject = Self.normalizedInjectionText(text) else { return }
         setClipboard(textToInject, synchronously: true)
 
         hasAccessibility = AXIsProcessTrusted()
@@ -50,7 +47,7 @@ final class TextInjector: @unchecked Sendable {
             // 1. Activate target app first
             if let app {
                 app.activate(options: [.activateIgnoringOtherApps])
-                usleep(220_000) // let app/window become active
+                usleep(self.activationDelayMicros) // let app/window become active
             }
 
             // 2. Try direct AX insertion (primary)
@@ -63,9 +60,7 @@ final class TextInjector: @unchecked Sendable {
             }
 
             print("[Wisper] ↩️ Falling back to clipboard + Cmd+V")
-
-            // 3. Simulate Cmd+V (clipboard already set above)
-            self.simulateCmdV()
+            self.performPasteFallback()
 
             if let clipboardAfterInjection {
                 self.setClipboard(clipboardAfterInjection, delay: 0.12)
@@ -120,6 +115,13 @@ final class TextInjector: @unchecked Sendable {
             return nil
         }
         return frontmost
+    }
+
+    static func normalizedInjectionText(_ text: String) -> String? {
+        guard !text.isEmpty else { return nil }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return trimmed + " "
     }
 
     private func injectTextViaAccessibility(_ text: String) -> Bool {
@@ -178,5 +180,14 @@ final class TextInjector: @unchecked Sendable {
         cmdVUp.post(tap: .cghidEventTap)
 
         print("[Wisper] TextInjector: Cmd+V sent")
+    }
+
+    private func performPasteFallback() {
+        for attempt in 1...pasteRetryCount {
+            simulateCmdV()
+            if attempt < pasteRetryCount {
+                usleep(65_000)
+            }
+        }
     }
 }

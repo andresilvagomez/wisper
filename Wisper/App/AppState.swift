@@ -57,6 +57,7 @@ final class AppState: ObservableObject {
     @AppStorage("transcriptionMode") var transcriptionMode: TranscriptionMode = .streaming
     @AppStorage("recordingMode") var recordingMode: RecordingMode = .pushToTalk
     @AppStorage("selectedLanguage") var selectedLanguage = "auto"
+    @AppStorage("whisperModeEnabled") var whisperModeEnabled = false
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding = false
     @AppStorage("launchAtLogin") var launchAtLogin = false
     @AppStorage("selectedInputDeviceUID") var selectedInputDeviceUID = ""
@@ -72,14 +73,111 @@ final class AppState: ObservableObject {
 
     static let availableLanguages: [(code: String, name: String)] = [
         ("auto", "Auto (Detect language)"),
+        ("af", "Afrikaans"),
+        ("am", "Amharic"),
+        ("ar", "العربية"),
+        ("as", "Assamese"),
+        ("az", "Azerbaijani"),
+        ("az-Cyrl", "Azerbaijani (Cyrillic)"),
+        ("ba", "Bashkir"),
+        ("be", "Belarusian"),
+        ("bg", "Български"),
+        ("bn", "বাংলা"),
+        ("bo", "Tibetan"),
+        ("br", "Breton"),
+        ("bs", "Bosnian"),
+        ("ca", "Català"),
+        ("cs", "Čeština"),
+        ("cy", "Cymraeg"),
+        ("da", "Dansk"),
         ("es", "Español"),
+        ("et", "Eesti"),
+        ("eu", "Euskara"),
+        ("fa", "فارسی"),
+        ("fi", "Suomi"),
+        ("fo", "Faroese"),
+        ("gl", "Galego"),
+        ("gu", "ગુજરાતી"),
+        ("ha", "Hausa"),
+        ("haw", "Hawaiian"),
+        ("he", "עברית"),
+        ("hi", "हिन्दी"),
+        ("hr", "Hrvatski"),
+        ("ht", "Haitian Creole"),
+        ("hu", "Magyar"),
+        ("hy", "Հայերեն"),
+        ("id", "Bahasa Indonesia"),
+        ("is", "Íslenska"),
+        ("jv", "Javanese"),
+        ("ka", "ქართული"),
+        ("kk", "Қазақ"),
+        ("km", "ខ្មែរ"),
+        ("kn", "ಕನ್ನಡ"),
+        ("la", "Latin"),
+        ("lb", "Luxembourgish"),
+        ("ln", "Lingala"),
+        ("lo", "ລາວ"),
+        ("lt", "Lietuvių"),
+        ("lv", "Latviešu"),
+        ("mg", "Malagasy"),
+        ("mi", "Māori"),
+        ("mk", "Македонски"),
+        ("ml", "മലയാളം"),
+        ("mn", "Монгол"),
+        ("mr", "मराठी"),
+        ("ms", "Bahasa Melayu"),
+        ("mt", "Malti"),
+        ("my", "မြန်မာ"),
+        ("ne", "नेपाली"),
+        ("nl", "Nederlands"),
+        ("nn", "Nynorsk"),
+        ("no", "Norsk"),
+        ("oc", "Occitan"),
+        ("pa", "ਪੰਜਾਬੀ"),
+        ("pl", "Polski"),
+        ("ps", "پښتو"),
         ("en", "English"),
+        ("en-GB", "English (UK)"),
+        ("en-US", "English (US)"),
         ("pt", "Português"),
+        ("pt-BR", "Português (Brasil)"),
+        ("pt-PT", "Português (Portugal)"),
         ("fr", "Français"),
         ("de", "Deutsch"),
         ("it", "Italiano"),
+        ("ro", "Română"),
+        ("ru", "Русский"),
+        ("sa", "Sanskrit"),
+        ("sd", "Sindhi"),
+        ("si", "සිංහල"),
+        ("sk", "Slovenčina"),
+        ("sl", "Slovenščina"),
+        ("sn", "Shona"),
+        ("so", "Soomaali"),
+        ("sq", "Shqip"),
+        ("sr", "Српски"),
+        ("su", "Sundanese"),
+        ("sv", "Svenska"),
+        ("sw", "Kiswahili"),
+        ("ta", "தமிழ்"),
+        ("te", "తెలుగు"),
+        ("tg", "Тоҷикӣ"),
+        ("th", "ไทย"),
+        ("tk", "Türkmen"),
+        ("tl", "Tagalog"),
+        ("tr", "Türkçe"),
+        ("tt", "Татар"),
+        ("uk", "Українська"),
+        ("ur", "اردو"),
+        ("uz", "Oʻzbek"),
+        ("vi", "Tiếng Việt"),
+        ("yi", "ייִדיש"),
+        ("yo", "Yorùbá"),
+        ("yue", "粵語"),
         ("ja", "日本語"),
         ("ko", "한국어"),
+        ("zh-Hans", "中文（简体）"),
+        ("zh-Hant", "中文（繁體）"),
         ("zh", "中文"),
     ]
 
@@ -294,6 +392,8 @@ final class AppState: ObservableObject {
         let engine = transcriptionEngine
         let captureStarted = audioEngine?.startCapture(
             inputDeviceUID: inputDeviceUIDForCapture,
+            inputGain: whisperModeEnabled ? 2.2 : 1.0,
+            noiseGate: whisperModeEnabled ? 0.004 : 0,
             onBuffer: { buffer in
                 engine?.processAudioBuffer(buffer)
             },
@@ -362,7 +462,7 @@ final class AppState: ObservableObject {
 
         let engine = transcriptionEngine
         let model = selectedModel
-        let lang = selectedLanguage == "auto" ? nil : selectedLanguage
+        let lang = selectedLanguage == "auto" ? nil : Self.normalizeWhisperLanguageCode(selectedLanguage)
 
         let phaseHandler: @Sendable (ModelPhase) -> Void = { [weak self] phase in
             Task { @MainActor in
@@ -419,5 +519,20 @@ final class AppState: ObservableObject {
             let hasFiles = ((try? FileManager.default.contentsOfDirectory(atPath: modelFolder.path))?.isEmpty == false)
             return hasFiles ? model.id : nil
         })
+    }
+
+    static func normalizeWhisperLanguageCode(_ code: String) -> String {
+        switch code.lowercased() {
+        case "pt-br", "pt-pt":
+            return "pt"
+        case "en-gb", "en-us":
+            return "en"
+        case "zh-hans", "zh-hant":
+            return "zh"
+        case "az-cyrl":
+            return "az"
+        default:
+            return code
+        }
     }
 }

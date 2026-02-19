@@ -24,6 +24,13 @@ struct TextInjectorTests {
         injector.typeText("\n\t\n")
     }
 
+    @Test("normalizedInjectionText trims and appends trailing space")
+    func normalizedInjectionText() {
+        #expect(TextInjector.normalizedInjectionText(" hola ") == "hola ")
+        #expect(TextInjector.normalizedInjectionText("") == nil)
+        #expect(TextInjector.normalizedInjectionText("   ") == nil)
+    }
+
     @Test("recheckAccessibility updates the property")
     func recheckUpdates() {
         let injector = TextInjector()

@@ -16,6 +16,7 @@ final class TranscriptionEngine: @unchecked Sendable {
     private var language: String?
     private let chunkDurationSeconds: Double = 3.0
     private let sampleRate: Int = 16000
+    private let modelDownloadMaxAttempts = 3
 
     // Whisper hallucination patterns to filter out
     static let hallucinationPatterns: [String] = [
@@ -60,13 +61,16 @@ final class TranscriptionEngine: @unchecked Sendable {
 
             onPhaseChange(.downloading(progress: 0))
 
-            let downloadedModelFolder = try await WhisperKit.download(
-                variant: modelName,
-                progressCallback: { progress in
-                    let fraction = max(0, min(1, progress.fractionCompleted))
-                    onPhaseChange(.downloading(progress: fraction))
-                }
-            )
+            let downloadedModelFolder: URL
+            if Self.isModelDownloaded(modelName) {
+                downloadedModelFolder = Self.localModelFolder(for: modelName)
+                onPhaseChange(.loading(step: "Using local model cache..."))
+            } else {
+                downloadedModelFolder = try await downloadModelWithRetry(
+                    modelName: modelName,
+                    onPhaseChange: onPhaseChange
+                )
+            }
 
             onPhaseChange(.loading(step: "Preparing \(modelName)..."))
 
@@ -95,6 +99,46 @@ final class TranscriptionEngine: @unchecked Sendable {
             onPhaseChange(.error(message: msg))
             return false
         }
+    }
+
+    private func downloadModelWithRetry(
+        modelName: String,
+        onPhaseChange: @escaping @Sendable (ModelPhase) -> Void
+    ) async throws -> URL {
+        var lastError: Error?
+
+        for attempt in 1...modelDownloadMaxAttempts {
+            do {
+                let folder = try await WhisperKit.download(
+                    variant: modelName,
+                    progressCallback: { progress in
+                        let fraction = max(0, min(1, progress.fractionCompleted))
+                        onPhaseChange(.downloading(progress: fraction))
+                    }
+                )
+
+                guard Self.isModelFolderValid(folder) else {
+                    throw NSError(
+                        domain: "Wisper.TranscriptionEngine",
+                        code: 2,
+                        userInfo: [NSLocalizedDescriptionKey: "Downloaded model folder is empty"]
+                    )
+                }
+                return folder
+            } catch {
+                lastError = error
+                print("[Wisper] Download attempt \(attempt)/\(modelDownloadMaxAttempts) failed: \(error)")
+                if attempt < modelDownloadMaxAttempts {
+                    try? await Task.sleep(for: .milliseconds(450 * attempt))
+                }
+            }
+        }
+
+        throw lastError ?? NSError(
+            domain: "Wisper.TranscriptionEngine",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "Model download failed"]
+        )
     }
 
     func processAudioBuffer(_ samples: [Float]) {
@@ -266,5 +310,37 @@ final class TranscriptionEngine: @unchecked Sendable {
         if stripped.count == lower.count { return true }
 
         return false
+    }
+
+    static func localModelFolder(for modelName: String) -> URL {
+        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory())
+        return documentsURL
+            .appendingPathComponent("huggingface", isDirectory: true)
+            .appendingPathComponent("models", isDirectory: true)
+            .appendingPathComponent("argmaxinc", isDirectory: true)
+            .appendingPathComponent("whisperkit-coreml", isDirectory: true)
+            .appendingPathComponent(modelName, isDirectory: true)
+    }
+
+    static func isModelDownloaded(_ modelName: String) -> Bool {
+        isModelFolderValid(localModelFolder(for: modelName))
+    }
+
+    static func isModelFolderValid(_ folderURL: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: folderURL.path, isDirectory: &isDirectory),
+              isDirectory.boolValue else {
+            return false
+        }
+
+        guard let children = try? FileManager.default.contentsOfDirectory(
+            at: folderURL,
+            includingPropertiesForKeys: nil
+        ) else {
+            return false
+        }
+
+        return !children.isEmpty
     }
 }
