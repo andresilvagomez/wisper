@@ -10,6 +10,7 @@
 		04513B3B50274B201FC2129B /* OnboardingStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6CC326D672D68089F68B9A /* OnboardingStateMachineTests.swift */; };
 		11F3E04FF1B5A228B6F9AFCF /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B5699B345259613E791401D /* MenuBarView.swift */; };
 		1BE5E9211BF7F99CB7EB8285 /* ModelPhaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58165ED5E4FA2B1A1A5AF293 /* ModelPhaseTests.swift */; };
+		1D039FC3C61C539C24C89701 /* AudioInputDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 650D445E872FA40AA2D7ED0D /* AudioInputDevice.swift */; };
 		1E5187DD8C5EDEAF8B1A2A9D /* OnboardingStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A34F582F8D9C1474CA800C /* OnboardingStateMachine.swift */; };
 		33503FC6BA33AD60EB62B7FC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1A1C197449D7A4DCB9AB8B /* SettingsView.swift */; };
 		5F0EA8CABD35F818E187ED97 /* ModelPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFBFB4110D3F513EF2143F88 /* ModelPhase.swift */; };
@@ -48,6 +49,7 @@
 		5DA399349B832D6632053FDA /* WisperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WisperApp.swift; sourceTree = "<group>"; };
 		5FC2128AB850E5E028E8CB45 /* Wisper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wisper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		605B21CF9B309D356CD4E69E /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		650D445E872FA40AA2D7ED0D /* AudioInputDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioInputDevice.swift; sourceTree = "<group>"; };
 		6B5699B345259613E791401D /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		81BB0AE0FC393F48AC134D38 /* HallucinationFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HallucinationFilterTests.swift; sourceTree = "<group>"; };
 		88CC380054CCDCB89A2617A9 /* Wisper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Wisper.entitlements; sourceTree = "<group>"; };
@@ -133,6 +135,7 @@
 			isa = PBXGroup;
 			children = (
 				B60C033C519A0DD7D449A568 /* AudioEngine.swift */,
+				650D445E872FA40AA2D7ED0D /* AudioInputDevice.swift */,
 			);
 			path = Audio;
 			sourceTree = "<group>";
@@ -288,6 +291,7 @@
 			files = (
 				EFEFB564D754AB6EC8305BE2 /* AppState.swift in Sources */,
 				A987117687A8C6CA0798EBAA /* AudioEngine.swift in Sources */,
+				1D039FC3C61C539C24C89701 /* AudioInputDevice.swift in Sources */,
 				E859E4CF65380BB0EF8CC981 /* HotkeyManager.swift in Sources */,
 				11F3E04FF1B5A228B6F9AFCF /* MenuBarView.swift in Sources */,
 				5F0EA8CABD35F818E187ED97 /* ModelPhase.swift in Sources */,

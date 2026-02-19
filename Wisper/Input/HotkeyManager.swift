@@ -15,6 +15,15 @@ final class HotkeyManager: @unchecked Sendable {
     ) {
         self.onKeyDown = onKeyDown
         self.onKeyUp = onKeyUp
+
+        // KeyboardShortcuts only triggers for persisted shortcuts.
+        // If nothing is saved yet, ensure the default is written.
+        if KeyboardShortcuts.getShortcut(for: Self.shortcutName) == nil,
+           let defaultShortcut = Self.shortcutName.defaultShortcut
+        {
+            KeyboardShortcuts.setShortcut(defaultShortcut, for: Self.shortcutName)
+        }
+
         KeyboardShortcuts.onKeyDown(for: Self.shortcutName) { [weak self] in
             self?.onKeyDown()
         }

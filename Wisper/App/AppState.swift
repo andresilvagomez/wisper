@@ -23,6 +23,7 @@ final class AppState: ObservableObject {
     @Published var needsAccessibility = false
     @Published var needsMicrophone = false
     @Published var microphonePermissionStatus: AVAuthorizationStatus = .notDetermined
+    @Published var availableInputDevices: [AudioInputDevice] = []
 
     // MARK: - Overlay
 
@@ -40,6 +41,7 @@ final class AppState: ObservableObject {
     @AppStorage("selectedLanguage") var selectedLanguage = "es"
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding = false
     @AppStorage("launchAtLogin") var launchAtLogin = false
+    @AppStorage("selectedInputDeviceUID") var selectedInputDeviceUID = ""
 
     // MARK: - Engines
 
@@ -79,6 +81,7 @@ final class AppState: ObservableObject {
     func setupEngines() {
         textInjector = TextInjector()
         audioEngine = AudioEngine()
+        refreshInputDevices()
         refreshPermissionState()
 
         transcriptionEngine = TranscriptionEngine(
@@ -193,6 +196,48 @@ final class AppState: ObservableObject {
         }
     }
 
+    var hasMultipleInputDevices: Bool {
+        availableInputDevices.count > 1
+    }
+
+    var selectedInputDeviceName: String {
+        availableInputDevices.first(where: { $0.id == selectedInputDeviceUID })?.name
+            ?? availableInputDevices.first?.name
+            ?? "Micrófono"
+    }
+
+    func refreshInputDevices() {
+        let devices = AudioEngine.availableInputDevices()
+        availableInputDevices = devices
+
+        guard !devices.isEmpty else {
+            selectedInputDeviceUID = ""
+            return
+        }
+
+        if devices.count == 1 {
+            selectedInputDeviceUID = devices[0].id
+            return
+        }
+
+        if devices.contains(where: { $0.id == selectedInputDeviceUID }) {
+            return
+        }
+
+        if let defaultUID = AudioEngine.defaultInputDeviceUID(),
+           devices.contains(where: { $0.id == defaultUID }) {
+            selectedInputDeviceUID = defaultUID
+        } else {
+            selectedInputDeviceUID = devices[0].id
+        }
+    }
+
+    private var inputDeviceUIDForCapture: String? {
+        guard !selectedInputDeviceUID.isEmpty else { return nil }
+        guard availableInputDevices.contains(where: { $0.id == selectedInputDeviceUID }) else { return nil }
+        return selectedInputDeviceUID
+    }
+
     func startRecording() {
         guard modelPhase.isReady, !isRecording else {
             print("[Wisper] startRecording BLOCKED — modelReady=\(modelPhase.isReady) isRecording=\(isRecording)")
@@ -207,18 +252,15 @@ final class AppState: ObservableObject {
         }
 
         textInjector?.captureTargetApp()
+        refreshInputDevices()
 
-        isRecording = true
         confirmedText = ""
         partialText = ""
         audioLevel = 0
 
-        overlayController.show(appState: self)
-
-        print("[Wisper] ▶ Recording started (mode: \(recordingMode.rawValue), transcription: \(transcriptionMode.rawValue))")
-
         let engine = transcriptionEngine
-        audioEngine?.startCapture(
+        let captureStarted = audioEngine?.startCapture(
+            inputDeviceUID: inputDeviceUIDForCapture,
             onBuffer: { buffer in
                 engine?.processAudioBuffer(buffer)
             },
@@ -227,7 +269,17 @@ final class AppState: ObservableObject {
                     self?.audioLevel = level
                 }
             }
-        )
+        ) ?? false
+
+        guard captureStarted else {
+            print("[Wisper] ⚠️ startRecording FAILED — audio capture could not start")
+            transcriptionEngine?.clearBuffer()
+            return
+        }
+
+        isRecording = true
+        overlayController.show(appState: self)
+        print("[Wisper] ▶ Recording started (mode: \(recordingMode.rawValue), transcription: \(transcriptionMode.rawValue))")
     }
 
     func stopRecording() {
@@ -241,9 +293,18 @@ final class AppState: ObservableObject {
         if transcriptionMode == .onRelease {
             transcriptionEngine?.finalize { [weak self] in
                 Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(50))
-                    guard let self, !self.confirmedText.isEmpty else { return }
-                    self.textInjector?.typeText(self.confirmedText)
+                    guard let self else { return }
+
+                    for _ in 0..<12 {
+                        if !self.confirmedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { break }
+                        try? await Task.sleep(for: .milliseconds(50))
+                    }
+
+                    let confirmed = self.confirmedText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let partial = self.partialText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let textToInject = !confirmed.isEmpty ? confirmed : partial
+                    guard !textToInject.isEmpty else { return }
+                    self.textInjector?.typeText(textToInject)
                 }
             }
         } else {

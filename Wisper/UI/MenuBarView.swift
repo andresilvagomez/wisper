@@ -34,10 +34,18 @@ struct MenuBarView: View {
             languageSelector
             Divider()
 
+            if appState.hasMultipleInputDevices {
+                inputSourceSelector
+                Divider()
+            }
+
             // Actions
             actionButtons
         }
         .frame(width: 280)
+        .onAppear {
+            appState.refreshInputDevices()
+        }
     }
 
     // MARK: - Status Header
@@ -220,6 +228,19 @@ struct MenuBarView: View {
     }
 
     // MARK: - Actions
+
+    private var inputSourceSelector: some View {
+        Picker(selection: $appState.selectedInputDeviceUID) {
+            ForEach(appState.availableInputDevices) { device in
+                Text(device.name).tag(device.id)
+            }
+        } label: {
+            Label("Input source", systemImage: "mic.fill")
+        }
+        .pickerStyle(.menu)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+    }
 
     private var actionButtons: some View {
         VStack(spacing: 0) {

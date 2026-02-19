@@ -49,6 +49,14 @@ struct GeneralSettingsTab: View {
             Section("Recording") {
                 KeyboardShortcuts.Recorder("Shortcut", name: HotkeyManager.shortcutName)
 
+                if appState.hasMultipleInputDevices {
+                    Picker("Input source", selection: $appState.selectedInputDeviceUID) {
+                        ForEach(appState.availableInputDevices) { device in
+                            Text(device.name).tag(device.id)
+                        }
+                    }
+                }
+
                 Picker("Mode", selection: $appState.recordingMode) {
                     ForEach(RecordingMode.allCases, id: \.self) { mode in
                         Text(mode.rawValue).tag(mode)
@@ -71,6 +79,9 @@ struct GeneralSettingsTab: View {
         }
         .formStyle(.grouped)
         .padding()
+        .onAppear {
+            appState.refreshInputDevices()
+        }
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {

@@ -123,6 +123,7 @@ final class TranscriptionEngine: @unchecked Sendable {
 
         processingQueue.async { [weak self] in
             guard let self else { return }
+            let waitForCompletion = DispatchSemaphore(value: 0)
 
             Task {
                 do {
@@ -162,7 +163,10 @@ final class TranscriptionEngine: @unchecked Sendable {
                 }
 
                 self.isProcessing = false
+                waitForCompletion.signal()
             }
+
+            waitForCompletion.wait()
         }
     }
 
@@ -182,6 +186,7 @@ final class TranscriptionEngine: @unchecked Sendable {
                 completion?()
                 return
             }
+            let waitForCompletion = DispatchSemaphore(value: 0)
 
             Task {
                 do {
@@ -221,7 +226,10 @@ final class TranscriptionEngine: @unchecked Sendable {
                 }
 
                 completion?()
+                waitForCompletion.signal()
             }
+
+            waitForCompletion.wait()
         }
     }
 

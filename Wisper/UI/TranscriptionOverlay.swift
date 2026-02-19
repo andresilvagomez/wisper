@@ -56,6 +56,36 @@ struct RecordingIndicatorContent: View {
 
             AudioWaveView(audioLevel: appState.audioLevel)
 
+            if appState.hasMultipleInputDevices {
+                Menu {
+                    ForEach(appState.availableInputDevices) { device in
+                        Button {
+                            appState.selectedInputDeviceUID = device.id
+                        } label: {
+                            if device.id == appState.selectedInputDeviceUID {
+                                Label(device.name, systemImage: "checkmark")
+                            } else {
+                                Text(device.name)
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "mic.fill")
+                        Text(appState.selectedInputDeviceName)
+                            .lineLimit(1)
+                    }
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.2))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .frame(maxWidth: 140)
+                }
+                .menuStyle(.borderlessButton)
+            }
+
             Image(systemName: "stop.fill")
                 .font(.system(size: 12))
                 .foregroundColor(.white)
@@ -71,7 +101,10 @@ struct RecordingIndicatorContent: View {
         .background(.ultraThinMaterial)
         .clipShape(Capsule())
         .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 4)
-        .onAppear { pulse = true }
+        .onAppear {
+            pulse = true
+            appState.refreshInputDevices()
+        }
     }
 }
 
@@ -90,11 +123,12 @@ final class OverlayWindowController {
         let content = RecordingIndicatorContent()
             .environmentObject(appState)
 
+        let panelWidth: CGFloat = appState.hasMultipleInputDevices ? 360 : 200
         let hostingView = NSHostingView(rootView: AnyView(content))
-        hostingView.frame = NSRect(x: 0, y: 0, width: 200, height: 48)
+        hostingView.frame = NSRect(x: 0, y: 0, width: panelWidth, height: 48)
 
         let panel = FloatingPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 200, height: 48),
+            contentRect: NSRect(x: 0, y: 0, width: panelWidth, height: 48),
             styleMask: [.nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -111,7 +145,7 @@ final class OverlayWindowController {
 
         if let screen = NSScreen.main {
             let screenFrame = screen.visibleFrame
-            let x = screenFrame.midX - 100
+            let x = screenFrame.midX - (panelWidth / 2)
             let y = screenFrame.minY + 60
             panel.setFrameOrigin(NSPoint(x: x, y: y))
         }

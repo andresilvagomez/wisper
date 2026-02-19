@@ -43,13 +43,13 @@ final class TextInjector: @unchecked Sendable {
             return
         }
 
-        let app = targetApp
+        let app = resolvedTargetApp()
 
         pasteQueue.async {
             // 1. Activate target app first
             if let app {
-                app.activate()
-                usleep(200_000) // 200ms for app to come to front
+                app.activate(options: [.activateIgnoringOtherApps])
+                usleep(220_000) // let app/window become active
             }
 
             // 2. Try direct AX insertion (primary)
@@ -71,6 +71,19 @@ final class TextInjector: @unchecked Sendable {
             // 4. Simulate Cmd+V
             self.simulateCmdV()
         }
+    }
+
+    private func resolvedTargetApp() -> NSRunningApplication? {
+        if let targetApp,
+           targetApp.bundleIdentifier != Bundle.main.bundleIdentifier {
+            return targetApp
+        }
+
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        if frontmost?.bundleIdentifier == Bundle.main.bundleIdentifier {
+            return nil
+        }
+        return frontmost
     }
 
     private func injectTextViaAccessibility(_ text: String) -> Bool {
@@ -122,8 +135,10 @@ final class TextInjector: @unchecked Sendable {
         cmdVDown.flags = .maskCommand
         cmdVUp.flags = .maskCommand
 
+        cmdVDown.post(tap: .cgAnnotatedSessionEventTap)
         cmdVDown.post(tap: .cghidEventTap)
         usleep(20_000)
+        cmdVUp.post(tap: .cgAnnotatedSessionEventTap)
         cmdVUp.post(tap: .cghidEventTap)
 
         print("[Wisper] TextInjector: Cmd+V sent")
