@@ -90,6 +90,7 @@ struct AudioWaveView: View {
 
 struct RecordingIndicatorContent: View {
     @EnvironmentObject var appState: AppState
+    let onResetPosition: (() -> Void)?
     @State private var pulse = false
 
     var body: some View {
@@ -110,6 +111,9 @@ struct RecordingIndicatorContent: View {
             .frame(width: 20, height: 22)
             .contentShape(Rectangle())
             .help("Drag to move")
+            .onTapGesture(count: 2) {
+                onResetPosition?()
+            }
 
             Circle()
                 .fill(Color.red)
@@ -197,7 +201,13 @@ final class OverlayWindowController {
         let contentHeight: CGFloat = 48
         let contentWidth: CGFloat = appState.hasMultipleInputDevices ? 360 : 200
 
-        let content = RecordingIndicatorContent()
+        let content = RecordingIndicatorContent(
+            onResetPosition: { [weak self] in
+                Task { @MainActor in
+                    self?.resetToDefaultPosition()
+                }
+            }
+        )
             .environmentObject(appState)
 
         let panelWidth = contentWidth
@@ -264,5 +274,22 @@ final class OverlayWindowController {
         }
         window?.orderOut(nil)
         window = nil
+    }
+
+    @MainActor
+    private func resetToDefaultPosition() {
+        guard let window else { return }
+        guard let screen = window.screen ?? NSScreen.main else { return }
+
+        let visibleFrame = screen.visibleFrame
+        let panelSize = window.frame.size
+        let defaultOrigin = OverlayPositioning.defaultOrigin(
+            panelSize: panelSize,
+            visibleFrame: visibleFrame
+        )
+
+        positionStorage.clear()
+        window.setFrameOrigin(defaultOrigin)
+        positionStorage.save(defaultOrigin)
     }
 }
