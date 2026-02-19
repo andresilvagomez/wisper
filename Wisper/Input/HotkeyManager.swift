@@ -1,11 +1,13 @@
-import Carbon
-import Cocoa
-import HotKey
+import KeyboardShortcuts
 
 final class HotkeyManager: @unchecked Sendable {
-    private var hotKey: HotKey?
     private let onKeyDown: @Sendable () -> Void
     private let onKeyUp: @Sendable () -> Void
+
+    static let shortcutName = KeyboardShortcuts.Name(
+        "wisperRecordShortcut",
+        default: .init(.space, modifiers: [.option])
+    )
 
     init(
         onKeyDown: @escaping @Sendable () -> Void,
@@ -13,30 +15,11 @@ final class HotkeyManager: @unchecked Sendable {
     ) {
         self.onKeyDown = onKeyDown
         self.onKeyUp = onKeyUp
-        setupDefaultHotkey()
-    }
-
-    func setupDefaultHotkey() {
-        setupHotkey(key: .space, modifiers: [.option])
-    }
-
-    func setupHotkey(key: Key, modifiers: NSEvent.ModifierFlags) {
-        hotKey?.isPaused = true
-        hotKey = nil
-
-        hotKey = HotKey(key: key, modifiers: modifiers)
-
-        hotKey?.keyDownHandler = { [weak self] in
+        KeyboardShortcuts.onKeyDown(for: Self.shortcutName) { [weak self] in
             self?.onKeyDown()
         }
-
-        hotKey?.keyUpHandler = { [weak self] in
+        KeyboardShortcuts.onKeyUp(for: Self.shortcutName) { [weak self] in
             self?.onKeyUp()
         }
-    }
-
-    deinit {
-        hotKey?.isPaused = true
-        hotKey = nil
     }
 }

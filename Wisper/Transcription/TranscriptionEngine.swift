@@ -52,26 +52,33 @@ final class TranscriptionEngine: @unchecked Sendable {
         onPhaseChange: @escaping @Sendable (ModelPhase) -> Void
     ) async -> Bool {
         self.language = language
-        
-        
 
         do {
-            // Single-step: WhisperKit handles download, load, and prewarm.
             print("[Wisper] ====================================")
             print("[Wisper] Starting model load: \(modelName)")
             print("[Wisper] ====================================")
 
+            onPhaseChange(.downloading(progress: 0))
+
+            let downloadedModelFolder = try await WhisperKit.download(
+                variant: modelName,
+                progressCallback: { progress in
+                    let fraction = max(0, min(1, progress.fractionCompleted))
+                    onPhaseChange(.downloading(progress: fraction))
+                }
+            )
+
             onPhaseChange(.loading(step: "Preparing \(modelName)..."))
 
             let config = WhisperKitConfig(
-                model: modelName,
+                modelFolder: downloadedModelFolder.path,
                 verbose: true,
                 prewarm: true,
                 load: true,
-                download: true
+                download: false
             )
 
-            print("[Wisper] Config created, calling WhisperKit init...")
+            print("[Wisper] Download complete, calling WhisperKit init...")
             whisperKit = try await WhisperKit(config)
             print("[Wisper] ====================================")
             print("[Wisper] MODEL READY")
@@ -130,7 +137,14 @@ final class TranscriptionEngine: @unchecked Sendable {
 
                     let results = try await whisperKit.transcribe(
                         audioArray: audioToProcess,
-                        decodeOptions: options
+                        decodeOptions: options,
+                        callback: { progress in
+                            let partial = progress.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !partial.isEmpty {
+                                self.onPartialResult(partial)
+                            }
+                            return nil
+                        }
                     )
 
                     if let text = results.first?.text.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -182,7 +196,14 @@ final class TranscriptionEngine: @unchecked Sendable {
 
                     let results = try await whisperKit.transcribe(
                         audioArray: remainingAudio,
-                        decodeOptions: options
+                        decodeOptions: options,
+                        callback: { progress in
+                            let partial = progress.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !partial.isEmpty {
+                                self.onPartialResult(partial)
+                            }
+                            return nil
+                        }
                     )
 
                     if let text = results.first?.text.trimmingCharacters(in: .whitespacesAndNewlines),

@@ -1,3 +1,4 @@
+import KeyboardShortcuts
 import SwiftUI
 
 struct OnboardingView: View {
@@ -6,18 +7,8 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Progress indicator
-            HStack(spacing: 8) {
-                ForEach(0..<3, id: \.self) { step in
-                    Capsule()
-                        .fill(step <= currentStep ? Color.accentColor : Color.secondary.opacity(0.3))
-                        .frame(height: 4)
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
+            header
 
-            // Content
             TabView(selection: $currentStep) {
                 welcomeStep.tag(0)
                 permissionsStep.tag(1)
@@ -25,33 +16,12 @@ struct OnboardingView: View {
             }
             .tabViewStyle(.automatic)
 
-            // Navigation
-            HStack {
-                if currentStep > 0 {
-                    Button("Back") {
-                        withAnimation { currentStep -= 1 }
-                    }
-                }
-
-                Spacer()
-
-                if currentStep < 2 {
-                    Button("Next") {
-                        withAnimation { currentStep += 1 }
-                    }
-                    .buttonStyle(.borderedProminent)
-                } else if appState.modelPhase.isReady {
-                    Button("Get Started") {
-                        appState.hasCompletedOnboarding = true
-                        NSApplication.shared.keyWindow?.close()
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-            }
-            .padding(24)
+            Divider()
+            footer
         }
-        .frame(width: 500, height: 400)
+        .frame(width: 560, height: 460)
         .task {
+            appState.refreshPermissionState()
             if appState.hasCompletedOnboarding {
                 DispatchQueue.main.async {
                     NSApp.windows.first { $0.title == "Wisper Setup" }?.close()
@@ -60,180 +30,290 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Welcome
+    private var canContinueFromPermissions: Bool {
+        !appState.needsAccessibility && !appState.needsMicrophone
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Configuración de Wisper")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                Spacer()
+                Text("Paso \(currentStep + 1) de 3")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            HStack(spacing: 8) {
+                ForEach(0..<3, id: \.self) { step in
+                    Capsule()
+                        .fill(step <= currentStep ? Color.accentColor : Color.secondary.opacity(0.25))
+                        .frame(height: 6)
+                }
+            }
+        }
+        .padding(20)
+    }
+
+    // MARK: - Footer
+
+    private var footer: some View {
+        HStack {
+            if currentStep > 0 {
+                Button("Atrás") {
+                    withAnimation { currentStep -= 1 }
+                }
+                .keyboardShortcut(.cancelAction)
+            }
+
+            Spacer()
+
+            switch currentStep {
+            case 0:
+                Button("Continuar") {
+                    withAnimation { currentStep = 1 }
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+            case 1:
+                Button("Continuar") {
+                    withAnimation { currentStep = 2 }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!canContinueFromPermissions)
+                .keyboardShortcut(.defaultAction)
+            default:
+                if appState.modelPhase.isReady {
+                    Button("Empezar a usar Wisper") {
+                        appState.hasCompletedOnboarding = true
+                        NSApplication.shared.keyWindow?.close()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                } else {
+                    Button("Cargar modelo") {
+                        Task { await appState.loadModel() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(appState.modelPhase.isActive)
+                    .keyboardShortcut(.defaultAction)
+                }
+            }
+        }
+        .padding(20)
+    }
+
+    // MARK: - Step 1
 
     private var welcomeStep: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 18) {
             Spacer()
 
             Image(systemName: "waveform.circle.fill")
                 .font(.system(size: 72))
                 .foregroundStyle(.blue.gradient)
 
-            Text("Welcome to Wisper")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-
-            Text("Speech to text that runs entirely on your Mac.\nPrivate, fast, and always available.")
-                .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
-
-            Spacer()
-        }
-        .padding()
-    }
-
-    // MARK: - Permissions
-
-    private var permissionsStep: some View {
-        VStack(spacing: 20) {
-            Spacer()
-
-            Text("Permissions")
+            Text("Dictado local, rápido y privado")
                 .font(.title)
                 .fontWeight(.bold)
 
-            VStack(alignment: .leading, spacing: 16) {
-                permissionRow(
-                    icon: "mic.fill",
-                    title: "Microphone",
-                    description: "Required to capture your voice",
-                    buttonLabel: "Grant",
-                    action: {
-                        Task { _ = await AudioEngine.requestPermission() }
-                    }
-                )
+            Text("Wisper transcribe en tu Mac con Whisper.\nSin enviar audio a la nube.")
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
 
-                permissionRow(
-                    icon: "hand.raised.fill",
-                    title: "Accessibility",
-                    description: "Required so Wisper can paste text into other apps",
-                    buttonLabel: "Open Settings",
-                    action: {
-                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    }
-                )
+            VStack(alignment: .leading, spacing: 10) {
+                featureRow(icon: "mic.fill", text: "Graba con un atajo global")
+                featureRow(icon: "bolt.fill", text: "Inserta texto donde tengas el cursor")
+                featureRow(icon: "lock.fill", text: "Procesamiento on-device")
             }
-            .padding(.horizontal)
+            .padding()
+            .background(Color.secondary.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
 
             Spacer()
         }
-        .padding()
+        .padding(.horizontal, 32)
+        .padding(.bottom, 8)
     }
 
-    private func permissionRow(icon: String, title: String, description: String, buttonLabel: String, action: @escaping () -> Void) -> some View {
+    private func featureRow(icon: String, text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .foregroundColor(.accentColor)
+                .frame(width: 18)
+            Text(text)
+                .font(.body)
+            Spacer()
+        }
+    }
+
+    // MARK: - Step 2
+
+    private var permissionsStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Permisos necesarios")
+                .font(.title3)
+                .fontWeight(.semibold)
+
+            Text("Para grabar y pegar texto en otras apps, Wisper necesita estos permisos.")
+                .foregroundColor(.secondary)
+
+            permissionCard(
+                icon: "mic.fill",
+                title: "Micrófono",
+                granted: !appState.needsMicrophone,
+                buttonTitle: appState.needsMicrophone ? "Conceder acceso" : "Concedido",
+                buttonAction: {
+                    Task { await appState.requestMicrophonePermission() }
+                }
+            )
+
+            permissionCard(
+                icon: "hand.raised.fill",
+                title: "Accesibilidad",
+                granted: !appState.needsAccessibility,
+                buttonTitle: appState.needsAccessibility ? "Abrir ajuste" : "Concedido",
+                buttonAction: {
+                    appState.refreshPermissionState(requestAccessibilityPrompt: true)
+                }
+            )
+
+            HStack(spacing: 10) {
+                Button("Verificar de nuevo") {
+                    appState.refreshPermissionState()
+                }
+                .buttonStyle(.bordered)
+
+                if canContinueFromPermissions {
+                    Label("Todo listo", systemImage: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.callout)
+                } else {
+                    Text("Concede ambos permisos para continuar")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 32)
+        .padding(.bottom, 12)
+    }
+
+    private func permissionCard(
+        icon: String,
+        title: String,
+        granted: Bool,
+        buttonTitle: String,
+        buttonAction: @escaping () -> Void
+    ) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(.accentColor)
-                .frame(width: 32)
+                .font(.title3)
+                .foregroundColor(granted ? .green : .orange)
+                .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .fontWeight(.medium)
-                Text(description)
+                Text(granted ? "Permiso activo" : "Permiso pendiente")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
 
             Spacer()
 
-            Button(buttonLabel) {
-                action()
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
+            Button(buttonTitle, action: buttonAction)
+                .buttonStyle(.bordered)
+                .disabled(granted)
         }
         .padding(12)
-        .background(Color.secondary.opacity(0.05))
-        .cornerRadius(8)
+        .background(Color.secondary.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
-    // MARK: - Model Download
+    // MARK: - Step 3
 
     private var modelStep: some View {
-        VStack(spacing: 20) {
-            Spacer()
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Atajo y modelo")
+                .font(.title3)
+                .fontWeight(.semibold)
 
-            Text("Download Model")
-                .font(.title)
-                .fontWeight(.bold)
-
-            Text("Wisper uses the Whisper AI model which runs locally on your Mac.")
-                .multilineTextAlignment(.center)
+            Text("Define tu atajo y deja el modelo listo para usar.")
                 .foregroundColor(.secondary)
 
-            VStack(spacing: 12) {
-                Picker("Model", selection: $appState.selectedModel) {
-                    ForEach(AppState.availableModels, id: \.id) { model in
-                        Text("\(model.name) (\(model.size))").tag(model.id)
-                    }
+            GroupBox("Atajo global") {
+                HStack {
+                    KeyboardShortcuts.Recorder("Grabar", name: HotkeyManager.shortcutName)
+                    Spacer()
                 }
-                .pickerStyle(.menu)
-
-                Picker("Language", selection: $appState.selectedLanguage) {
-                    ForEach(AppState.availableLanguages, id: \.code) { lang in
-                        Text(lang.name).tag(lang.code)
-                    }
-                }
-                .pickerStyle(.menu)
-
-                switch appState.modelPhase {
-                case .downloading(let progress):
-                    VStack(spacing: 8) {
-                        ProgressView(value: progress)
-                        Text(String(format: "Downloading... %.1f%%", progress * 100))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                case .loading(let step):
-                    VStack(spacing: 8) {
-                        ProgressView()
-                        Text(step)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-
-                case .ready:
-                    Label("Model ready!", systemImage: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                        .font(.headline)
-
-                case .error(let message):
-                    HStack(spacing: 6) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text(message)
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                            .lineLimit(3)
-                    }
-                    .padding(8)
-                    .background(Color.orange.opacity(0.1))
-                    .cornerRadius(6)
-
-                    Button("Retry Download") {
-                        Task { await appState.loadModel() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-
-                case .idle:
-                    Button("Download Model") {
-                        Task { await appState.loadModel() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                }
+                .padding(.top, 2)
             }
-            .padding(.horizontal)
+
+            GroupBox("Modelo de transcripción") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Picker("Modelo", selection: $appState.selectedModel) {
+                        ForEach(AppState.availableModels, id: \.id) { model in
+                            Text("\(model.name) (\(model.size))").tag(model.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .disabled(appState.modelPhase.isActive)
+
+                    Picker("Idioma", selection: $appState.selectedLanguage) {
+                        ForEach(AppState.availableLanguages, id: \.code) { lang in
+                            Text(lang.name).tag(lang.code)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .disabled(appState.modelPhase.isActive)
+
+                    modelStatusView
+                }
+                .padding(.top, 2)
+            }
 
             Spacer()
         }
-        .padding()
+        .padding(.horizontal, 32)
+        .padding(.bottom, 12)
+    }
+
+    @ViewBuilder
+    private var modelStatusView: some View {
+        switch appState.modelPhase {
+        case .downloading(let progress):
+            VStack(alignment: .leading, spacing: 6) {
+                ProgressView(value: progress)
+                Text(String(format: "Descargando… %.0f%%", progress * 100))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        case .loading(let step):
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text(step)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        case .ready:
+            Label("Modelo listo para transcribir", systemImage: "checkmark.circle.fill")
+                .foregroundColor(.green)
+                .font(.callout)
+        case .error(let message):
+            Label(message, systemImage: "exclamationmark.triangle.fill")
+                .foregroundColor(.orange)
+                .font(.caption)
+        case .idle:
+            Text("Pulsa “Cargar modelo” para finalizar.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
     }
 }

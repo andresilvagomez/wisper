@@ -10,15 +10,15 @@
 		11F3E04FF1B5A228B6F9AFCF /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B5699B345259613E791401D /* MenuBarView.swift */; };
 		1BE5E9211BF7F99CB7EB8285 /* ModelPhaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58165ED5E4FA2B1A1A5AF293 /* ModelPhaseTests.swift */; };
 		33503FC6BA33AD60EB62B7FC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1A1C197449D7A4DCB9AB8B /* SettingsView.swift */; };
-		3D8DD76D91A768E9484C1330 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = CD4D23D81DB6B8CF7A547851 /* KeyboardShortcuts */; };
 		5F0EA8CABD35F818E187ED97 /* ModelPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFBFB4110D3F513EF2143F88 /* ModelPhase.swift */; };
-		5F1112BDAF977A66901A3260 /* HotKey in Frameworks */ = {isa = PBXBuildFile; productRef = 3AEA419BA5E3F3AEAFDD4639 /* HotKey */; };
+		5F1112BDAF977A66901A3260 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = CD4D23D81DB6B8CF7A547851 /* KeyboardShortcuts */; };
 		6E015D3819CFBF592FE225ED /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1DC99BBCCEEE22C84D397F /* OnboardingView.swift */; };
 		709E17AE25636EB3A8BA99A6 /* WisperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA399349B832D6632053FDA /* WisperApp.swift */; };
 		743C38C06BED59B9CCC70345 /* TranscriptionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34A162627B1350E8924C1617 /* TranscriptionEngine.swift */; };
 		8D918EEB22D4A8A19A3D7F10 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 881A0D3BFF15A3BDB41BFE53 /* WhisperKit */; };
 		9DFCD4F2F625CE656DA0314A /* HallucinationFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81BB0AE0FC393F48AC134D38 /* HallucinationFilterTests.swift */; };
 		A987117687A8C6CA0798EBAA /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60C033C519A0DD7D449A568 /* AudioEngine.swift */; };
+		CA0EA91AD2DD5F7149021001 /* HotkeyManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A72340CE707E7F9FE2756590 /* HotkeyManagerTests.swift */; };
 		CA9F9D168DC589A630CBB993 /* TranscriptionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3327C47D203EDA652D316DCC /* TranscriptionOverlay.swift */; };
 		E11B54ECA8D9F9426E7B92E8 /* TextInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EA9B8726D557B2D7E43491E /* TextInjector.swift */; };
 		E2FBDAE8DBBA618B42061D73 /* TextInjectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE73A31643EBC9B6CCCB80F8 /* TextInjectorTests.swift */; };
@@ -49,6 +49,7 @@
 		6B5699B345259613E791401D /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		81BB0AE0FC393F48AC134D38 /* HallucinationFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HallucinationFilterTests.swift; sourceTree = "<group>"; };
 		88CC380054CCDCB89A2617A9 /* Wisper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Wisper.entitlements; sourceTree = "<group>"; };
+		A72340CE707E7F9FE2756590 /* HotkeyManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManagerTests.swift; sourceTree = "<group>"; };
 		AE1A1C197449D7A4DCB9AB8B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AFA750A1E71974D953615113 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		B60C033C519A0DD7D449A568 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
@@ -65,8 +66,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8D918EEB22D4A8A19A3D7F10 /* WhisperKit in Frameworks */,
-				5F1112BDAF977A66901A3260 /* HotKey in Frameworks */,
-				3D8DD76D91A768E9484C1330 /* KeyboardShortcuts in Frameworks */,
+				5F1112BDAF977A66901A3260 /* KeyboardShortcuts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -116,6 +116,7 @@
 			isa = PBXGroup;
 			children = (
 				81BB0AE0FC393F48AC134D38 /* HallucinationFilterTests.swift */,
+				A72340CE707E7F9FE2756590 /* HotkeyManagerTests.swift */,
 				58165ED5E4FA2B1A1A5AF293 /* ModelPhaseTests.swift */,
 				EE73A31643EBC9B6CCCB80F8 /* TextInjectorTests.swift */,
 			);
@@ -206,7 +207,6 @@
 			name = Wisper;
 			packageProductDependencies = (
 				881A0D3BFF15A3BDB41BFE53 /* WhisperKit */,
-				3AEA419BA5E3F3AEAFDD4639 /* HotKey */,
 				CD4D23D81DB6B8CF7A547851 /* KeyboardShortcuts */,
 			);
 			productName = Wisper;
@@ -239,7 +239,6 @@
 			mainGroup = 25A98FB5CAD3AB7FC83D53AE;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F3B61CAEF744DD3475ABB0F8 /* XCRemoteSwiftPackageReference "HotKey" */,
 				71493E620D0F00D77630EC1C /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 				24BF4039138F129F95B7DB09 /* XCRemoteSwiftPackageReference "WhisperKit" */,
 			);
@@ -270,6 +269,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9DFCD4F2F625CE656DA0314A /* HallucinationFilterTests.swift in Sources */,
+				CA0EA91AD2DD5F7149021001 /* HotkeyManagerTests.swift in Sources */,
 				1BE5E9211BF7F99CB7EB8285 /* ModelPhaseTests.swift in Sources */,
 				E2FBDAE8DBBA618B42061D73 /* TextInjectorTests.swift in Sources */,
 			);
@@ -554,22 +554,9 @@
 				minimumVersion = 2.2.0;
 			};
 		};
-		F3B61CAEF744DD3475ABB0F8 /* XCRemoteSwiftPackageReference "HotKey" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/soffes/HotKey";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.2.1;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		3AEA419BA5E3F3AEAFDD4639 /* HotKey */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F3B61CAEF744DD3475ABB0F8 /* XCRemoteSwiftPackageReference "HotKey" */;
-			productName = HotKey;
-		};
 		881A0D3BFF15A3BDB41BFE53 /* WhisperKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 24BF4039138F129F95B7DB09 /* XCRemoteSwiftPackageReference "WhisperKit" */;

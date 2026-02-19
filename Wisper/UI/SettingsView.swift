@@ -47,6 +47,8 @@ struct GeneralSettingsTab: View {
             }
 
             Section("Recording") {
+                KeyboardShortcuts.Recorder("Shortcut", name: HotkeyManager.shortcutName)
+
                 Picker("Mode", selection: $appState.recordingMode) {
                     ForEach(RecordingMode.allCases, id: \.self) { mode in
                         Text(mode.rawValue).tag(mode)

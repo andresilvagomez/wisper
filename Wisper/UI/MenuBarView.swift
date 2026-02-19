@@ -1,4 +1,5 @@
 import SwiftUI
+import KeyboardShortcuts
 
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
@@ -52,7 +53,7 @@ struct MenuBarView: View {
 
             Spacer()
 
-            Text("⌥ Space")
+            Text(currentShortcutLabel)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 8)
@@ -61,6 +62,14 @@ struct MenuBarView: View {
                 .cornerRadius(4)
         }
         .padding(12)
+    }
+
+    private var currentShortcutLabel: String {
+        if let shortcut = KeyboardShortcuts.getShortcut(for: HotkeyManager.shortcutName) {
+            return shortcut.description
+        }
+
+        return "No shortcut"
     }
 
     private var statusColor: Color {

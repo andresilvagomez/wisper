@@ -1,6 +1,6 @@
 # Wisper
 
-macOS menu bar app for on-device speech-to-text using WhisperKit. Press ⌥Space to record, text gets pasted where the cursor is.
+macOS menu bar app for on-device speech-to-text using WhisperKit. Press your configured global shortcut (default ⌥Space) to record, then text gets pasted where the cursor is.
 
 ## Architecture
 
@@ -9,7 +9,7 @@ WisperApp (SwiftUI @main, MenuBarExtra)
   └─ AppState (@MainActor, central state)
        ├─ AudioEngine        → Microphone capture (16kHz mono PCM)
        ├─ TranscriptionEngine → WhisperKit ML inference
-       ├─ HotkeyManager       → Global ⌥Space shortcut
+       ├─ HotkeyManager       → Global configurable shortcut (KeyboardShortcuts)
        ├─ TextInjector         → Clipboard + CGEvent Cmd+V paste
        └─ OverlayWindowController → Floating recording indicator
 ```
@@ -27,7 +27,7 @@ Wisper/
 ├── Transcription/
 │   └── TranscriptionEngine.swift # WhisperKit transcription, 3s chunks, hallucination filter
 ├── Input/
-│   ├── HotkeyManager.swift      # Global hotkey (⌥Space) via HotKey library
+│   ├── HotkeyManager.swift      # Global configurable hotkey via KeyboardShortcuts
 │   └── TextInjector.swift       # Paste text into target app via CGEvent Cmd+V
 ├── UI/
 │   ├── MenuBarView.swift        # Menu bar dropdown: status, transcription, language, settings
@@ -54,7 +54,6 @@ WisperTests/
 | Package | Version | Purpose |
 |---------|---------|---------|
 | [WhisperKit](https://github.com/argmaxinc/WhisperKit) | 0.12.0+ | On-device Whisper inference via CoreML |
-| [HotKey](https://github.com/soffes/HotKey) | 0.2.1+ | System-wide hotkey registration |
 | [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) | 2.2.0+ | Keyboard shortcut UI components |
 
 ### Build & Run
@@ -90,7 +89,7 @@ Test suites: `HallucinationFilterTests`, `TextInjectorTests`, `ModelPhaseTests`
 The app transcribes speech and pastes text into the user's active app. Two methods:
 
 1. **AXUIElement** (primary): Directly sets `kAXSelectedTextAttribute` on focused element — inserts at cursor
-2. **Clipboard + CGEvent Cmd+V** (fallback): Copies to pasteboard, simulates ⌘V keystroke
+2. **Clipboard + CGEvent Cmd+V** (fallback): Used when AX insertion fails for the focused element
 
 **Requirements**:
 - macOS Accessibility permission (System Settings → Privacy → Accessibility)
@@ -122,7 +121,9 @@ WhisperKit produces false positives on silence/noise. `TranscriptionEngine.isHal
 
 ### Model Loading
 
-WhisperKit handles download + CoreML compilation in a single init:
+Model loading is split in two explicit UI phases:
+- **Downloading**: Uses `WhisperKit.download(...)` with real progress (0.0-1.0)
+- **Loading**: Initializes WhisperKit with local model folder + CoreML prewarm/load
 - First run: 1-5+ minutes (CoreML compiles for the chip)
 - Subsequent runs: 10-30 seconds (cached)
 - Model loads automatically on app launch (`AppState.init()`)

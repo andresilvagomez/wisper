@@ -77,25 +77,8 @@ final class AppState: ObservableObject {
 
     func setupEngines() {
         textInjector = TextInjector()
-        textInjector?.setup()
-        needsAccessibility = !(textInjector?.hasAccessibility ?? false)
-
-        // Check microphone permission
-        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
-        needsMicrophone = (micStatus != .authorized)
-        print("[Wisper] Microphone permission: \(micStatus.rawValue) (0=notDetermined, 1=restricted, 2=denied, 3=authorized)")
-
-        if micStatus == .notDetermined {
-            Task {
-                let granted = await AudioEngine.requestPermission()
-                await MainActor.run {
-                    self.needsMicrophone = !granted
-                    print("[Wisper] Microphone permission granted: \(granted)")
-                }
-            }
-        }
-
         audioEngine = AudioEngine()
+        refreshPermissionState()
 
         transcriptionEngine = TranscriptionEngine(
             onPartialResult: { [weak self] text in
@@ -139,6 +122,38 @@ final class AppState: ObservableObject {
         )
     }
 
+    func refreshPermissionState(
+        requestAccessibilityPrompt: Bool = false,
+        requestMicrophonePrompt: Bool = false
+    ) {
+        if requestAccessibilityPrompt {
+            textInjector?.setup()
+        } else {
+            textInjector?.recheckAccessibility()
+        }
+        needsAccessibility = !(textInjector?.hasAccessibility ?? false)
+
+        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+        needsMicrophone = (micStatus != .authorized)
+        print("[Wisper] Microphone permission: \(micStatus.rawValue) (0=notDetermined, 1=restricted, 2=denied, 3=authorized)")
+
+        if requestMicrophonePrompt, micStatus == .notDetermined {
+            Task {
+                let granted = await AudioEngine.requestPermission()
+                await MainActor.run {
+                    self.needsMicrophone = !granted
+                    print("[Wisper] Microphone permission granted: \(granted)")
+                }
+            }
+        }
+    }
+
+    func requestMicrophonePermission() async {
+        let granted = await AudioEngine.requestPermission()
+        needsMicrophone = !granted
+        print("[Wisper] Microphone permission granted: \(granted)")
+    }
+
     func toggleRecording() {
         if isRecording {
             stopRecording()
@@ -154,11 +169,7 @@ final class AppState: ObservableObject {
         }
 
         // Recheck permissions each time
-        textInjector?.recheckAccessibility()
-        needsAccessibility = !(textInjector?.hasAccessibility ?? false)
-
-        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
-        needsMicrophone = (micStatus != .authorized)
+        refreshPermissionState()
         guard !needsMicrophone else {
             print("[Wisper] ⚠️ startRecording BLOCKED — no microphone permission")
             return

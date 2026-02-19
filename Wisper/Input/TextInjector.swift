@@ -46,7 +46,21 @@ final class TextInjector: @unchecked Sendable {
         let app = targetApp
 
         pasteQueue.async {
-            // 1. Copy to clipboard first (always)
+            // 1. Activate target app first
+            if let app {
+                app.activate()
+                usleep(200_000) // 200ms for app to come to front
+            }
+
+            // 2. Try direct AX insertion (primary)
+            if self.injectTextViaAccessibility(textToInject) {
+                print("[Wisper] ✅ Injected via AXSelectedTextAttribute")
+                return
+            }
+
+            print("[Wisper] ↩️ Falling back to clipboard + Cmd+V")
+
+            // 3. Clipboard fallback
             DispatchQueue.main.sync {
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
@@ -54,15 +68,43 @@ final class TextInjector: @unchecked Sendable {
             }
             print("[Wisper] 📋 Clipboard set")
 
-            // 2. Activate target app
-            if let app {
-                app.activate()
-                usleep(200_000) // 200ms for app to come to front
-            }
-
-            // 3. Simulate Cmd+V
+            // 4. Simulate Cmd+V
             self.simulateCmdV()
         }
+    }
+
+    private func injectTextViaAccessibility(_ text: String) -> Bool {
+        let systemWide = AXUIElementCreateSystemWide()
+        var focusedRef: CFTypeRef?
+        let status = AXUIElementCopyAttributeValue(
+            systemWide,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedRef
+        )
+
+        guard status == .success else {
+            print("[Wisper] AX focus lookup failed: \(status.rawValue)")
+            return false
+        }
+
+        guard let focusedRef else {
+            print("[Wisper] AX focused element unavailable")
+            return false
+        }
+        let focusedElement = unsafeBitCast(focusedRef, to: AXUIElement.self)
+
+        let setStatus = AXUIElementSetAttributeValue(
+            focusedElement,
+            kAXSelectedTextAttribute as CFString,
+            text as CFTypeRef
+        )
+
+        guard setStatus == .success else {
+            print("[Wisper] AX insert failed: \(setStatus.rawValue)")
+            return false
+        }
+
+        return true
     }
 
     // MARK: - Clipboard + Cmd+V
