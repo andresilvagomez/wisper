@@ -1,9 +1,11 @@
 import KeyboardShortcuts
 import SwiftUI
+import Combine
 
 struct OnboardingView: View {
     @EnvironmentObject var appState: AppState
     @State private var currentStep = 0
+    private let permissionsAutoRefresh = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -22,11 +24,18 @@ struct OnboardingView: View {
         .frame(width: 560, height: 460)
         .task {
             appState.refreshPermissionState()
+            if appState.needsAccessibility || appState.needsMicrophone {
+                currentStep = 1
+            }
             if appState.hasCompletedOnboarding {
                 DispatchQueue.main.async {
                     NSApp.windows.first { $0.title == L10n.t("window.onboarding.title") }?.close()
                 }
             }
+        }
+        .onReceive(permissionsAutoRefresh) { _ in
+            guard currentStep == 1 else { return }
+            appState.refreshPermissionState()
         }
     }
 
@@ -94,25 +103,14 @@ struct OnboardingView: View {
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
             case 1:
-                HStack(spacing: 10) {
-                    if !onboardingMachine.canContinueFromPermissions {
-                        Button("Continuar de todas formas") {
-                            var machine = onboardingMachine
-                            machine.goToNextPrimaryStep()
-                            withAnimation { currentStep = machine.currentStep.rawValue }
-                        }
-                        .buttonStyle(.bordered)
-                    }
-
-                    Button(onboardingMachine.canContinueFromPermissions ? "Continuar" : "Continuar con permisos")
-                    {
-                        var machine = onboardingMachine
-                        machine.goToNextPrimaryStep()
-                        withAnimation { currentStep = machine.currentStep.rawValue }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
+                Button("Continuar") {
+                    var machine = onboardingMachine
+                    machine.goToNextPrimaryStep()
+                    withAnimation { currentStep = machine.currentStep.rawValue }
                 }
+                .buttonStyle(.borderedProminent)
+                .disabled(!onboardingMachine.canContinueFromPermissions)
+                .keyboardShortcut(.defaultAction)
             default:
                 if onboardingMachine.canFinishOnboarding {
                     HStack(spacing: 10) {
@@ -199,8 +197,14 @@ struct OnboardingView: View {
                 .font(.title3)
                 .fontWeight(.semibold)
 
-            Text("Para grabar y pegar texto en otras apps, Wisper necesita estos permisos.")
+            Text("Activa estos permisos para usar Wisper con una experiencia completa.")
                 .foregroundColor(.secondary)
+
+            if appState.needsMicrophone || appState.needsAccessibility {
+                Label("Activa ambos permisos para usar Wisper sin bloqueos.", systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundColor(.orange)
+            }
 
             permissionCard(
                 icon: "mic.fill",
@@ -208,7 +212,7 @@ struct OnboardingView: View {
                 granted: !appState.needsMicrophone,
                 buttonTitle: appState.needsMicrophone ? "Conceder acceso" : "Concedido",
                 buttonAction: {
-                    Task { await appState.requestMicrophonePermission() }
+                    Task { await requestMicrophoneFlow() }
                 },
                 helpMessage: microphoneHelpText
             )
@@ -219,10 +223,12 @@ struct OnboardingView: View {
                 granted: !appState.needsAccessibility,
                 buttonTitle: appState.needsAccessibility ? "Abrir ajuste" : "Concedido",
                 buttonAction: {
-                    appState.refreshPermissionState(requestAccessibilityPrompt: true)
+                    requestAccessibilityFlow()
                 },
                 helpMessage: accessibilityHelpText
             )
+
+            premiumPermissionsGuide
 
             HStack(spacing: 10) {
                 Button("Verificar de nuevo") {
@@ -235,7 +241,7 @@ struct OnboardingView: View {
                         .foregroundColor(.green)
                         .font(.callout)
                 } else {
-                    Text("Puedes continuar y reintentar luego sin bloquear la app")
+                    Text("Esta pantalla se mantendrá hasta que ambos permisos estén activos.")
                         .font(.callout)
                         .foregroundColor(.secondary)
                 }
@@ -245,6 +251,76 @@ struct OnboardingView: View {
         }
         .padding(.horizontal, 32)
         .padding(.bottom, 12)
+    }
+
+    private var premiumPermissionsGuide: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Guía rápida")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+
+            guidedStep(
+                number: 1,
+                title: "Activa Micrófono",
+                done: !appState.needsMicrophone,
+                actionTitle: "Abrir ajuste",
+                action: { appState.openSystemSettings(.microphone) }
+            )
+
+            guidedStep(
+                number: 2,
+                title: "Activa Accesibilidad",
+                done: !appState.needsAccessibility,
+                actionTitle: "Abrir ajuste",
+                action: { appState.openSystemSettings(.accessibility) }
+            )
+
+            guidedStep(
+                number: 3,
+                title: "Vuelve a Wisper",
+                done: onboardingMachine.canContinueFromPermissions,
+                actionTitle: "Verificar ahora",
+                action: { appState.refreshPermissionState() }
+            )
+        }
+        .padding(12)
+        .background(Color.secondary.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func guidedStep(
+        number: Int,
+        title: String,
+        done: Bool,
+        actionTitle: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(done ? Color.green : Color.secondary.opacity(0.25))
+                    .frame(width: 24, height: 24)
+                if done {
+                    Image(systemName: "checkmark")
+                        .font(.caption.bold())
+                        .foregroundColor(.white)
+                } else {
+                    Text("\(number)")
+                        .font(.caption.bold())
+                        .foregroundColor(.primary)
+                }
+            }
+
+            Text(title)
+                .font(.callout)
+
+            Spacer()
+
+            Button(done ? "Listo" : actionTitle, action: action)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(done)
+        }
     }
 
     private func permissionCard(
@@ -431,6 +507,20 @@ struct OnboardingView: View {
             return .orange
         case .critical:
             return .red
+        }
+    }
+
+    private func requestAccessibilityFlow() {
+        appState.refreshPermissionState(requestAccessibilityPrompt: true)
+        if appState.needsAccessibility {
+            appState.openSystemSettings(.accessibility)
+        }
+    }
+
+    private func requestMicrophoneFlow() async {
+        await appState.requestMicrophonePermission()
+        if appState.needsMicrophone {
+            appState.openSystemSettings(.microphone)
         }
     }
 }

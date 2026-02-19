@@ -62,6 +62,8 @@ final class AppState: ObservableObject {
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding = false
     @AppStorage("launchAtLogin") var launchAtLogin = false
     @AppStorage("selectedInputDeviceUID") var selectedInputDeviceUID = ""
+    @Published private(set) var onboardingPresentationToken = UUID()
+    private var hasRunInitialPermissionAudit = false
 
     // MARK: - Engines
 
@@ -283,6 +285,10 @@ final class AppState: ObservableObject {
         needsMicrophone = (micStatus != .authorized)
         print("[Wisper] Microphone permission: \(micStatus.rawValue) (0=notDetermined, 1=restricted, 2=denied, 3=authorized)")
 
+        if needsAccessibility || needsMicrophone {
+            hasCompletedOnboarding = false
+        }
+
         if requestMicrophonePrompt, micStatus == .notDetermined {
             Task {
                 let granted = await AudioEngine.requestPermission()
@@ -293,6 +299,28 @@ final class AppState: ObservableObject {
                 }
             }
         }
+    }
+
+    func runInitialPermissionAuditIfNeeded() async {
+        guard !hasRunInitialPermissionAudit else { return }
+        hasRunInitialPermissionAudit = true
+
+        refreshPermissionState(
+            requestAccessibilityPrompt: true,
+            requestMicrophonePrompt: true
+        )
+
+        try? await Task.sleep(for: .milliseconds(350))
+        refreshPermissionState()
+
+        if needsAccessibility || needsMicrophone {
+            requestOnboardingPresentation()
+        }
+    }
+
+    func requestOnboardingPresentation() {
+        hasCompletedOnboarding = false
+        onboardingPresentationToken = UUID()
     }
 
     func requestMicrophonePermission() async {
@@ -398,6 +426,15 @@ final class AppState: ObservableObject {
         refreshPermissionState()
         guard !needsMicrophone else {
             print("[Wisper] ⚠️ startRecording BLOCKED — no microphone permission")
+            requestOnboardingPresentation()
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        guard !needsAccessibility else {
+            print("[Wisper] ⚠️ startRecording BLOCKED — no accessibility permission")
+            requestOnboardingPresentation()
+            NSApp.activate(ignoringOtherApps: true)
             return
         }
 

@@ -3,6 +3,7 @@ import KeyboardShortcuts
 
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(spacing: 0) {
@@ -179,7 +180,7 @@ struct MenuBarView: View {
 
     private var accessibilityWarning: some View {
         Button(action: {
-            appState.openSystemSettings(.accessibility)
+            openGuidedOnboarding()
         }) {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -189,7 +190,7 @@ struct MenuBarView: View {
                     Text("Falta Accesibilidad")
                         .font(.caption)
                         .fontWeight(.medium)
-                    Text("Pulsa para abrir Ajustes")
+                    Text("Pulsa para abrir guía paso a paso")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -205,7 +206,7 @@ struct MenuBarView: View {
 
     private var microphoneWarning: some View {
         Button(action: {
-            appState.openSystemSettings(.microphone)
+            openGuidedOnboarding()
         }) {
             HStack(spacing: 8) {
                 Image(systemName: "mic.slash.fill")
@@ -215,7 +216,7 @@ struct MenuBarView: View {
                     Text("Falta Micrófono")
                         .font(.caption)
                         .fontWeight(.medium)
-                    Text("Pulsa para abrir Ajustes")
+                    Text("Pulsa para abrir guía paso a paso")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -287,5 +288,11 @@ struct MenuBarView: View {
             .padding(.vertical, 8)
             .keyboardShortcut("q")
         }
+    }
+
+    private func openGuidedOnboarding() {
+        appState.requestOnboardingPresentation()
+        NSApp.activate(ignoringOtherApps: true)
+        openWindow(id: "onboarding")
     }
 }

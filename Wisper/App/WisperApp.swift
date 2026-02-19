@@ -14,13 +14,9 @@ struct WisperApp: App {
                 .environmentObject(appState)
                 .environment(\.locale, Locale(identifier: appState.resolvedInterfaceLanguageCode))
         } label: {
-            Label {
-                Text("Wisper")
-            } icon: {
-                Image(systemName: appState.isRecording ? "waveform.circle.fill" : "mic.circle")
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundColor(appState.isRecording ? .red : .primary)
-            }
+            MenuBarLabelView()
+                .environmentObject(appState)
+                .environment(\.locale, Locale(identifier: appState.resolvedInterfaceLanguageCode))
         }
         .menuBarExtraStyle(.window)
 
@@ -37,5 +33,36 @@ struct WisperApp: App {
         }
         .windowResizability(.contentSize)
         .defaultSize(width: 500, height: 400)
+    }
+}
+
+private struct MenuBarLabelView: View {
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.openWindow) private var openWindow
+    @State private var hasPerformedInitialAudit = false
+
+    var body: some View {
+        Label {
+            Text("Wisper")
+        } icon: {
+            Image(systemName: appState.isRecording ? "waveform.circle.fill" : "mic.circle")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundColor(appState.isRecording ? .red : .primary)
+        }
+        .task {
+            guard !hasPerformedInitialAudit else { return }
+            hasPerformedInitialAudit = true
+            await appState.runInitialPermissionAuditIfNeeded()
+            presentOnboardingIfRequired()
+        }
+        .onChange(of: appState.onboardingPresentationToken) { _, _ in
+            presentOnboardingIfRequired()
+        }
+    }
+
+    private func presentOnboardingIfRequired() {
+        guard appState.needsAccessibility || appState.needsMicrophone else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        openWindow(id: "onboarding")
     }
 }
