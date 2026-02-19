@@ -25,6 +25,12 @@ struct SettingsView: View {
                 }
         }
         .frame(width: 450, height: 320)
+        .onAppear {
+            NSApp.activate(ignoringOtherApps: true)
+            DispatchQueue.main.async {
+                NSApp.keyWindow?.makeKeyAndOrderFront(nil)
+            }
+        }
     }
 }
 
