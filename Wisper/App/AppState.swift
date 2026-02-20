@@ -105,6 +105,7 @@ final class AppState: ObservableObject {
     private let transcriptionCoordinator = TranscriptionCoordinator()
     private let modelLifecycleCoordinator = ModelLifecycleCoordinator()
     private let recordingSessionCoordinator = RecordingSessionCoordinator()
+    private let audioInputSelectionCoordinator = AudioInputSelectionCoordinator()
 
     // MARK: - Engines
 
@@ -424,9 +425,11 @@ final class AppState: ObservableObject {
     }
 
     var selectedInputDeviceName: String {
-        availableInputDevices.first(where: { $0.id == selectedInputDeviceUID })?.name
-            ?? availableInputDevices.first?.name
-            ?? L10n.t("audio.input.fallback")
+        audioInputSelectionCoordinator.selectedInputDeviceName(
+            selectedDeviceUID: selectedInputDeviceUID,
+            availableDevices: availableInputDevices,
+            fallbackName: L10n.t("audio.input.fallback")
+        )
     }
 
     var resolvedInterfaceLanguageCode: String {
@@ -439,35 +442,20 @@ final class AppState: ObservableObject {
     }
 
     func refreshInputDevices() {
-        let devices = AudioEngine.availableInputDevices()
-        availableInputDevices = devices
-
-        guard !devices.isEmpty else {
-            selectedInputDeviceUID = ""
-            return
-        }
-
-        if devices.count == 1 {
-            selectedInputDeviceUID = devices[0].id
-            return
-        }
-
-        if devices.contains(where: { $0.id == selectedInputDeviceUID }) {
-            return
-        }
-
-        if let defaultUID = AudioEngine.defaultInputDeviceUID(),
-           devices.contains(where: { $0.id == defaultUID }) {
-            selectedInputDeviceUID = defaultUID
-        } else {
-            selectedInputDeviceUID = devices[0].id
-        }
+        let result = audioInputSelectionCoordinator.resolveSelection(
+            devices: AudioEngine.availableInputDevices(),
+            currentSelection: selectedInputDeviceUID,
+            defaultDeviceUID: AudioEngine.defaultInputDeviceUID()
+        )
+        availableInputDevices = result.availableDevices
+        selectedInputDeviceUID = result.selectedDeviceUID
     }
 
     private var inputDeviceUIDForCapture: String? {
-        guard !selectedInputDeviceUID.isEmpty else { return nil }
-        guard availableInputDevices.contains(where: { $0.id == selectedInputDeviceUID }) else { return nil }
-        return selectedInputDeviceUID
+        audioInputSelectionCoordinator.captureInputDeviceUID(
+            selectedDeviceUID: selectedInputDeviceUID,
+            availableDevices: availableInputDevices
+        )
     }
 
     func startRecording() {
