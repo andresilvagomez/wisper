@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		04513B3B50274B201FC2129B /* OnboardingStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6CC326D672D68089F68B9A /* OnboardingStateMachineTests.swift */; };
 		11F3E04FF1B5A228B6F9AFCF /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B5699B345259613E791401D /* MenuBarView.swift */; };
+		1207966B017E811D0CFEC295 /* TranscriptionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE739367C761B9FF65F4CAC9 /* TranscriptionCoordinator.swift */; };
 		1BE5E9211BF7F99CB7EB8285 /* ModelPhaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58165ED5E4FA2B1A1A5AF293 /* ModelPhaseTests.swift */; };
 		1D039FC3C61C539C24C89701 /* AudioInputDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 650D445E872FA40AA2D7ED0D /* AudioInputDevice.swift */; };
 		1E5187DD8C5EDEAF8B1A2A9D /* OnboardingStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A34F582F8D9C1474CA800C /* OnboardingStateMachine.swift */; };
@@ -25,6 +26,7 @@
 		7996555E6677F944BC5E7BF2 /* OverlayPositioningTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1DD16661EA594FB072357CF /* OverlayPositioningTests.swift */; };
 		83DCC5A8951EEC7D570763D4 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111619F25FBD949B3EE18BFC /* L10n.swift */; };
 		8D918EEB22D4A8A19A3D7F10 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 881A0D3BFF15A3BDB41BFE53 /* WhisperKit */; };
+		8DDC603C0702A2260777B103 /* TranscriptionCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15CD2053861687DB0F7DC45C /* TranscriptionCoordinatorTests.swift */; };
 		9DFCD4F2F625CE656DA0314A /* HallucinationFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81BB0AE0FC393F48AC134D38 /* HallucinationFilterTests.swift */; };
 		A414BCB00D2FAC9B37C9EE3D /* TextPostProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3CFD153E177BE54A4C86277 /* TextPostProcessor.swift */; };
 		A987117687A8C6CA0798EBAA /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60C033C519A0DD7D449A568 /* AudioEngine.swift */; };
@@ -61,6 +63,7 @@
 		111619F25FBD949B3EE18BFC /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		140D520F0CA7612CBFFA5262 /* LanguageSupportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSupportTests.swift; sourceTree = "<group>"; };
 		15AFDC89479188D72E88B11E /* WisperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WisperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		15CD2053861687DB0F7DC45C /* TranscriptionCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionCoordinatorTests.swift; sourceTree = "<group>"; };
 		2984CF38A68CC1450F20470D /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		2EA9B8726D557B2D7E43491E /* TextInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInjector.swift; sourceTree = "<group>"; };
 		3327C47D203EDA652D316DCC /* TranscriptionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionOverlay.swift; sourceTree = "<group>"; };
@@ -93,6 +96,7 @@
 		D2F4CF3F3242424EAAFCB1FA /* PermissionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionServiceTests.swift; sourceTree = "<group>"; };
 		D6531AD8C825A639F86871E1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DA1DC99BBCCEEE22C84D397F /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		DE739367C761B9FF65F4CAC9 /* TranscriptionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionCoordinator.swift; sourceTree = "<group>"; };
 		EE73A31643EBC9B6CCCB80F8 /* TextInjectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInjectorTests.swift; sourceTree = "<group>"; };
 		F731D5C15FA4D99191A12C03 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F88A6895E16ED935468DEB9E /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
@@ -188,6 +192,7 @@
 				D2F4CF3F3242424EAAFCB1FA /* PermissionServiceTests.swift */,
 				EE73A31643EBC9B6CCCB80F8 /* TextInjectorTests.swift */,
 				4E1DBC218E387B6B420B0B4B /* TextPostProcessorTests.swift */,
+				15CD2053861687DB0F7DC45C /* TranscriptionCoordinatorTests.swift */,
 			);
 			path = WisperTests;
 			sourceTree = "<group>";
@@ -215,6 +220,7 @@
 			children = (
 				336D35D0C1608413279ABC4B /* DictationEditingService.swift */,
 				B3CFD153E177BE54A4C86277 /* TextPostProcessor.swift */,
+				DE739367C761B9FF65F4CAC9 /* TranscriptionCoordinator.swift */,
 				34A162627B1350E8924C1617 /* TranscriptionEngine.swift */,
 			);
 			path = Transcription;
@@ -364,6 +370,7 @@
 				B958195E2C084EC5B4154098 /* PermissionServiceTests.swift in Sources */,
 				E2FBDAE8DBBA618B42061D73 /* TextInjectorTests.swift in Sources */,
 				23DFE93671E230DEEA231F1C /* TextPostProcessorTests.swift in Sources */,
+				8DDC603C0702A2260777B103 /* TranscriptionCoordinatorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -386,6 +393,7 @@
 				33503FC6BA33AD60EB62B7FC /* SettingsView.swift in Sources */,
 				E11B54ECA8D9F9426E7B92E8 /* TextInjector.swift in Sources */,
 				A414BCB00D2FAC9B37C9EE3D /* TextPostProcessor.swift in Sources */,
+				1207966B017E811D0CFEC295 /* TranscriptionCoordinator.swift in Sources */,
 				743C38C06BED59B9CCC70345 /* TranscriptionEngine.swift in Sources */,
 				CA9F9D168DC589A630CBB993 /* TranscriptionOverlay.swift in Sources */,
 				709E17AE25636EB3A8BA99A6 /* WisperApp.swift in Sources */,

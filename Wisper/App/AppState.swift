@@ -102,11 +102,10 @@ final class AppState: ObservableObject {
     @Published private(set) var onboardingPresentationToken = UUID()
     private var hasRunInitialPermissionAudit = false
     private var queuedRecordingStartAfterModelReady = false
-    private var lastChunkProcessedAt: Date?
     private var recordingStartedAt: Date?
     private var modelWarmupRetryTask: Task<Void, Never>?
     private let permissionService = PermissionService()
-    private let editingService = DictationEditingService()
+    private let transcriptionCoordinator = TranscriptionCoordinator()
 
     // MARK: - Engines
 
@@ -266,82 +265,49 @@ final class AppState: ObservableObject {
         transcriptionEngine = TranscriptionEngine(
             onPartialResult: { [weak self] text in
                 Task { @MainActor in
+                    guard let self else { return }
                     print("[Wisper] Partial: \(text)")
-                    self?.partialText = text
+                    let result = self.transcriptionCoordinator.consumePartial(
+                        text,
+                        confirmedText: self.confirmedText
+                    )
+                    self.confirmedText = result.confirmedText
+                    self.partialText = result.partialText
                 }
             },
             onFinalResult: { [weak self] text in
                 Task { @MainActor in
                     guard let self else { return }
                     let chunkStartedAt = Date()
+                    let result = self.transcriptionCoordinator.consumeFinal(
+                        text: text,
+                        mode: self.transcriptionMode,
+                        confirmedText: self.confirmedText,
+                        recordingStartedAt: self.recordingStartedAt,
+                        chunkStartedAt: chunkStartedAt
+                    )
+                    self.confirmedText = result.confirmedText
+                    self.partialText = result.partialText
 
-        if self.transcriptionMode == .onRelease,
-           let editCommand = TextPostProcessor.editingCommand(in: text)
-        {
-            if let updated = self.editingService.applyCommand(editCommand, currentText: self.confirmedText) {
-                self.confirmedText = updated
-                self.textInjector?.copyAccumulatedTextToClipboard(self.confirmedText)
-            }
-            self.partialText = ""
-            self.lastChunkProcessedAt = .now
-            return
-        }
-
-                    if self.transcriptionMode == .onRelease,
-                       let correction = TextPostProcessor.correctionReplacementIfCommand(text)
-                    {
-                        self.editingService.snapshot(currentText: self.confirmedText)
-                        self.confirmedText = TextPostProcessor.replacingLastSentence(
-                            in: self.confirmedText,
-                            with: correction
-                        )
-                        self.partialText = ""
-                        self.lastChunkProcessedAt = .now
-                        let processingMs = Int(Date().timeIntervalSince(chunkStartedAt) * 1000)
+                    if let metricsText = result.metricsText, let processingMs = result.processingMs {
                         self.runtimeMetrics.registerChunk(
-                            text: correction,
+                            text: metricsText,
                             processingMs: processingMs,
                             sessionStartedAt: self.recordingStartedAt
                         )
-                        return
                     }
 
-                    let separator = TextPostProcessor.separatorForPause(
-                        since: self.lastChunkProcessedAt,
-                        previousText: self.confirmedText
-                    )
-
-                    let polished = TextPostProcessor.processChunk(
-                        text,
-                        mode: .fluent,
-                        isFirstChunk: self.confirmedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    )
-                    guard !polished.isEmpty else { return }
-
-                    let combined = (separator + polished).trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !combined.isEmpty else { return }
-
-                    print("[Wisper] Final result: \(combined)")
-                    self.editingService.snapshot(currentText: self.confirmedText)
-                    self.confirmedText = self.appendChunk(
-                        combined,
-                        to: self.confirmedText
-                    )
-                    self.partialText = ""
-                    self.lastChunkProcessedAt = .now
-                    let processingMs = Int(Date().timeIntervalSince(chunkStartedAt) * 1000)
-                    self.runtimeMetrics.registerChunk(
-                        text: combined,
-                        processingMs: processingMs,
-                        sessionStartedAt: self.recordingStartedAt
-                    )
-                    if self.transcriptionMode == .streaming {
+                    switch result.action {
+                    case .none:
+                        break
+                    case let .typeText(text, clipboardAfterInjection):
+                        print("[Wisper] Final result: \(text)")
                         self.textInjector?.typeText(
-                            combined,
-                            clipboardAfterInjection: self.confirmedText
+                            text,
+                            clipboardAfterInjection: clipboardAfterInjection
                         )
-                    } else {
-                        self.textInjector?.copyAccumulatedTextToClipboard(self.confirmedText)
+                    case let .copyToClipboard(text):
+                        self.textInjector?.copyAccumulatedTextToClipboard(text)
                     }
                 }
             }
@@ -546,10 +512,11 @@ final class AppState: ObservableObject {
         confirmedText = ""
         partialText = ""
         audioLevel = 0
-        lastChunkProcessedAt = nil
         recordingStartedAt = .now
         runtimeMetrics.reset()
-        editingService.reset()
+        let resetResult = transcriptionCoordinator.resetSession()
+        confirmedText = resetResult.confirmedText
+        partialText = resetResult.partialText
 
         let engine = transcriptionEngine
         let captureStarted = audioEngine?.startCapture(
@@ -582,7 +549,6 @@ final class AppState: ObservableObject {
         guard isRecording else { return }
         isRecording = false
         audioLevel = 0
-        lastChunkProcessedAt = nil
         recordingStartedAt = nil
         audioEngine?.stopCapture()
         overlayController.hide()
@@ -598,16 +564,10 @@ final class AppState: ObservableObject {
                         try? await Task.sleep(for: .milliseconds(50))
                     }
 
-                    let confirmed = self.confirmedText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let partial = self.partialText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let textToInject = !confirmed.isEmpty ? confirmed : partial
-                    guard !textToInject.isEmpty else { return }
-
-                    let polished = TextPostProcessor.processFinal(
-                        textToInject,
-                        mode: .fluent
-                    )
-                    guard !polished.isEmpty else { return }
+                    guard let polished = self.transcriptionCoordinator.finalizedOnReleaseText(
+                        confirmedText: self.confirmedText,
+                        partialText: self.partialText
+                    ) else { return }
 
                     self.textInjector?.typeText(
                         polished,
@@ -773,26 +733,6 @@ final class AppState: ObservableObject {
                 self.ensureModelWarmInBackground(reason: "retry_after_error")
             }
         }
-    }
-
-    private func appendChunk(_ chunk: String, to existing: String) -> String {
-        let chunkTrimmed = chunk.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !chunkTrimmed.isEmpty else { return existing }
-
-        if existing.isEmpty {
-            return chunkTrimmed
-        }
-
-        if chunk.contains("\n") {
-            return existing.trimmingCharacters(in: .whitespaces) + "\n" + chunkTrimmed
-        }
-
-        let cleanedExisting = existing.trimmingCharacters(in: .whitespacesAndNewlines)
-        if cleanedExisting.isEmpty {
-            return chunkTrimmed
-        }
-
-        return cleanedExisting + " " + chunkTrimmed
     }
 
 }
