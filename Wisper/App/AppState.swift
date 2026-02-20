@@ -105,8 +105,8 @@ final class AppState: ObservableObject {
     private var lastChunkProcessedAt: Date?
     private var recordingStartedAt: Date?
     private var modelWarmupRetryTask: Task<Void, Never>?
-    private var undoStack: [String] = []
-    private var redoStack: [String] = []
+    private let permissionService = PermissionService()
+    private let editingService = DictationEditingService()
 
     // MARK: - Engines
 
@@ -275,19 +275,22 @@ final class AppState: ObservableObject {
                     guard let self else { return }
                     let chunkStartedAt = Date()
 
-                    if self.transcriptionMode == .onRelease,
-                       let editCommand = TextPostProcessor.editingCommand(in: text)
-                    {
-                        self.applyEditingCommand(editCommand)
-                        self.partialText = ""
-                        self.lastChunkProcessedAt = .now
-                        return
-                    }
+        if self.transcriptionMode == .onRelease,
+           let editCommand = TextPostProcessor.editingCommand(in: text)
+        {
+            if let updated = self.editingService.applyCommand(editCommand, currentText: self.confirmedText) {
+                self.confirmedText = updated
+                self.textInjector?.copyAccumulatedTextToClipboard(self.confirmedText)
+            }
+            self.partialText = ""
+            self.lastChunkProcessedAt = .now
+            return
+        }
 
                     if self.transcriptionMode == .onRelease,
                        let correction = TextPostProcessor.correctionReplacementIfCommand(text)
                     {
-                        self.saveStateForUndo()
+                        self.editingService.snapshot(currentText: self.confirmedText)
                         self.confirmedText = TextPostProcessor.replacingLastSentence(
                             in: self.confirmedText,
                             with: correction
@@ -319,7 +322,7 @@ final class AppState: ObservableObject {
                     guard !combined.isEmpty else { return }
 
                     print("[Wisper] Final result: \(combined)")
-                    self.saveStateForUndo()
+                    self.editingService.snapshot(currentText: self.confirmedText)
                     self.confirmedText = self.appendChunk(
                         combined,
                         to: self.confirmedText
@@ -370,29 +373,26 @@ final class AppState: ObservableObject {
         requestAccessibilityPrompt: Bool = false,
         requestMicrophonePrompt: Bool = false
     ) {
-        if requestAccessibilityPrompt {
-            textInjector?.setup()
-        } else {
-            textInjector?.recheckAccessibility()
-        }
-        needsAccessibility = !(textInjector?.hasAccessibility ?? false)
-
-        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
-        microphonePermissionStatus = micStatus
-        needsMicrophone = (micStatus != .authorized)
-        print("[Wisper] Microphone permission: \(micStatus.rawValue) (0=notDetermined, 1=restricted, 2=denied, 3=authorized)")
+        let state = permissionService.refreshState(
+            accessibilityProvider: textInjector,
+            requestAccessibilityPrompt: requestAccessibilityPrompt
+        )
+        needsAccessibility = state.needsAccessibility
+        microphonePermissionStatus = state.microphoneStatus
+        needsMicrophone = state.needsMicrophone
+        print("[Wisper] Microphone permission: \(state.microphoneStatus.rawValue) (0=notDetermined, 1=restricted, 2=denied, 3=authorized)")
 
         if needsAccessibility || needsMicrophone {
             hasCompletedOnboarding = false
         }
 
-        if requestMicrophonePrompt, micStatus == .notDetermined {
+        if requestMicrophonePrompt, state.microphoneStatus == .notDetermined {
             Task {
-                let granted = await AudioEngine.requestPermission()
+                let requested = await permissionService.requestMicrophonePermissionIfNeeded()
                 await MainActor.run {
-                    self.needsMicrophone = !granted
-                    self.microphonePermissionStatus = granted ? .authorized : AVCaptureDevice.authorizationStatus(for: .audio)
-                    print("[Wisper] Microphone permission granted: \(granted)")
+                    self.needsMicrophone = requested.needsMicrophone
+                    self.microphonePermissionStatus = requested.microphoneStatus
+                    print("[Wisper] Microphone permission granted: \(!requested.needsMicrophone)")
                 }
             }
         }
@@ -423,12 +423,15 @@ final class AppState: ObservableObject {
     }
 
     func requestMicrophonePermission() async {
-        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        let status = permissionService.refreshState(
+            accessibilityProvider: textInjector,
+            requestAccessibilityPrompt: false
+        ).microphoneStatus
         if status == .notDetermined {
-            let granted = await AudioEngine.requestPermission()
-            needsMicrophone = !granted
-            microphonePermissionStatus = granted ? .authorized : AVCaptureDevice.authorizationStatus(for: .audio)
-            print("[Wisper] Microphone permission granted: \(granted)")
+            let requested = await permissionService.requestMicrophonePermissionIfNeeded()
+            needsMicrophone = requested.needsMicrophone
+            microphonePermissionStatus = requested.microphoneStatus
+            print("[Wisper] Microphone permission granted: \(!requested.needsMicrophone)")
             return
         }
 
@@ -438,21 +441,8 @@ final class AppState: ObservableObject {
         }
     }
 
-    enum SystemPermission {
-        case accessibility
-        case microphone
-    }
-
     func openSystemSettings(_ permission: SystemPermission) {
-        let urlString: String
-        switch permission {
-        case .accessibility:
-            urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-        case .microphone:
-            urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
-        }
-
-        guard let url = URL(string: urlString) else { return }
+        guard let url = permissionService.settingsURL(for: permission) else { return }
         NSWorkspace.shared.open(url)
     }
 
@@ -559,8 +549,7 @@ final class AppState: ObservableObject {
         lastChunkProcessedAt = nil
         recordingStartedAt = .now
         runtimeMetrics.reset()
-        undoStack.removeAll()
-        redoStack.removeAll()
+        editingService.reset()
 
         let engine = transcriptionEngine
         let captureStarted = audioEngine?.startCapture(
@@ -806,32 +795,4 @@ final class AppState: ObservableObject {
         return cleanedExisting + " " + chunkTrimmed
     }
 
-    private func applyEditingCommand(_ command: TextPostProcessor.EditingCommand) {
-        switch command {
-        case .deleteLastSentence:
-            let updated = TextPostProcessor.removingLastSentence(from: confirmedText)
-            guard updated != confirmedText else { return }
-            saveStateForUndo()
-            confirmedText = updated
-            textInjector?.copyAccumulatedTextToClipboard(confirmedText)
-        case .undo:
-            guard let previous = undoStack.popLast() else { return }
-            redoStack.append(confirmedText)
-            confirmedText = previous
-            textInjector?.copyAccumulatedTextToClipboard(confirmedText)
-        case .redo:
-            guard let next = redoStack.popLast() else { return }
-            undoStack.append(confirmedText)
-            confirmedText = next
-            textInjector?.copyAccumulatedTextToClipboard(confirmedText)
-        }
-    }
-
-    private func saveStateForUndo() {
-        undoStack.append(confirmedText)
-        if undoStack.count > 30 {
-            undoStack.removeFirst(undoStack.count - 30)
-        }
-        redoStack.removeAll()
-    }
 }
