@@ -101,11 +101,10 @@ final class AppState: ObservableObject {
     @AppStorage("selectedInputDeviceUID") var selectedInputDeviceUID = ""
     @Published private(set) var onboardingPresentationToken = UUID()
     private var hasRunInitialPermissionAudit = false
-    private var queuedRecordingStartAfterModelReady = false
     private var recordingStartedAt: Date?
-    private var modelWarmupRetryTask: Task<Void, Never>?
     private let permissionService = PermissionService()
     private let transcriptionCoordinator = TranscriptionCoordinator()
+    private let modelLifecycleCoordinator = ModelLifecycleCoordinator()
 
     // MARK: - Engines
 
@@ -477,8 +476,7 @@ final class AppState: ObservableObject {
             return
         }
 
-        guard modelPhase.isReady else {
-            queuedRecordingStartAfterModelReady = true
+        guard !modelLifecycleCoordinator.shouldDeferRecordingStart(modelPhase: modelPhase) else {
             if !modelPhase.isActive {
                 Task(priority: .utility) { [weak self] in
                     await self?.loadModel()
@@ -492,7 +490,7 @@ final class AppState: ObservableObject {
         refreshPermissionState()
         guard !needsMicrophone else {
             print("[Wisper] ⚠️ startRecording BLOCKED — no microphone permission")
-            queuedRecordingStartAfterModelReady = false
+            modelLifecycleCoordinator.clearQueuedRecordingStart()
             requestOnboardingPresentation()
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -500,7 +498,7 @@ final class AppState: ObservableObject {
 
         guard !needsAccessibility else {
             print("[Wisper] ⚠️ startRecording BLOCKED — no accessibility permission")
-            queuedRecordingStartAfterModelReady = false
+            modelLifecycleCoordinator.clearQueuedRecordingStart()
             requestOnboardingPresentation()
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -540,7 +538,7 @@ final class AppState: ObservableObject {
         }
 
         isRecording = true
-        queuedRecordingStartAfterModelReady = false
+        modelLifecycleCoordinator.clearQueuedRecordingStart()
         overlayController.show(appState: self)
         print("[Wisper] ▶ Recording started (mode: \(recordingMode.rawValue), transcription: \(transcriptionMode.rawValue))")
     }
@@ -611,17 +609,19 @@ final class AppState: ObservableObject {
         }.value
 
         if loaded {
-            modelWarmupRetryTask?.cancel()
-            modelWarmupRetryTask = nil
-
-            if queuedRecordingStartAfterModelReady, !isRecording {
-                queuedRecordingStartAfterModelReady = false
-                startRecording()
-            }
+            modelLifecycleCoordinator.consumeQueuedRecordingStartIfNeeded(
+                isRecording: isRecording,
+                startRecording: { [weak self] in self?.startRecording() }
+            )
             return
         }
 
-        scheduleWarmupRetryIfNeeded()
+        modelLifecycleCoordinator.scheduleWarmupRetryIfNeeded(
+            isRecording: isRecording,
+            onRetry: { [weak self] in
+                self?.ensureModelWarmInBackground(reason: "retry_after_error")
+            }
+        )
     }
 
     func reloadModel() {
@@ -647,53 +647,28 @@ final class AppState: ObservableObject {
 
     private func normalizeSelectedModelIfNeeded() {
         let validIDs = Set(Self.availableModels.map(\.id))
-        if !validIDs.contains(selectedModel) {
-            selectedModel = Self.defaultBundledModelID
-        }
+        selectedModel = modelLifecycleCoordinator.normalizedSelectedModel(
+            selectedModel: selectedModel,
+            validModelIDs: validIDs,
+            defaultModelID: Self.defaultBundledModelID
+        )
     }
 
     private func applyBestDownloadedModelAsDefaultIfNeeded() {
-        let downloadedModelIDs = Self.downloadedModelIDs()
-        guard !downloadedModelIDs.isEmpty else {
-            if selectedModel != Self.optionalSuperModelID {
-                selectedModel = Self.defaultBundledModelID
-            }
-            return
+        let downloadedModelIDs = modelLifecycleCoordinator.downloadedModelIDs(
+            availableModelIDs: Self.availableModels.map(\.id)
+        )
+        let resolved = modelLifecycleCoordinator.resolvedModelSelection(
+            currentSelection: selectedModel,
+            downloadedModelIDs: downloadedModelIDs,
+            defaultModelID: Self.defaultBundledModelID,
+            qualityPriority: Self.modelQualityPriority
+        )
+
+        if selectedModel != resolved {
+            selectedModel = resolved
+            print("[Wisper] ✅ Selected model after lifecycle resolution: \(resolved)")
         }
-
-        // Respect user preference if their chosen model is already downloaded.
-        if downloadedModelIDs.contains(selectedModel) || selectedModel == Self.defaultBundledModelID {
-            return
-        }
-
-        if let bestDownloaded = Self.modelQualityPriority.first(where: { downloadedModelIDs.contains($0) }) {
-            selectedModel = bestDownloaded
-            print("[Wisper] ✅ Selected best downloaded model as default: \(bestDownloaded)")
-        }
-    }
-
-    private static func downloadedModelIDs() -> Set<String> {
-        guard let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            return []
-        }
-
-        let modelsRoot = documentsURL
-            .appendingPathComponent("huggingface", isDirectory: true)
-            .appendingPathComponent("models", isDirectory: true)
-            .appendingPathComponent("argmaxinc", isDirectory: true)
-            .appendingPathComponent("whisperkit-coreml", isDirectory: true)
-
-        return Set(availableModels.compactMap { model in
-            let modelFolder = modelsRoot.appendingPathComponent(model.id, isDirectory: true)
-            var isDirectory: ObjCBool = false
-            guard FileManager.default.fileExists(atPath: modelFolder.path, isDirectory: &isDirectory),
-                  isDirectory.boolValue else {
-                return nil
-            }
-
-            let hasFiles = ((try? FileManager.default.contentsOfDirectory(atPath: modelFolder.path))?.isEmpty == false)
-            return hasFiles ? model.id : nil
-        })
     }
 
     static func normalizeWhisperLanguageCode(_ code: String) -> String {
@@ -712,27 +687,13 @@ final class AppState: ObservableObject {
     }
 
     func ensureModelWarmInBackground(reason _: String) {
-        guard !isRecording else { return }
-        guard !modelPhase.isActive else { return }
-        guard !modelPhase.isReady else { return }
-
-        Task(priority: .userInitiated) { [weak self] in
-            await self?.loadModel()
-        }
-    }
-
-    private func scheduleWarmupRetryIfNeeded() {
-        guard !isRecording else { return }
-        guard modelWarmupRetryTask == nil else { return }
-
-        modelWarmupRetryTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(3))
-            await MainActor.run {
-                guard let self else { return }
-                self.modelWarmupRetryTask = nil
-                self.ensureModelWarmInBackground(reason: "retry_after_error")
+        modelLifecycleCoordinator.ensureModelWarmInBackground(
+            isRecording: isRecording,
+            modelPhase: modelPhase,
+            load: { [weak self] in
+                await self?.loadModel()
             }
-        }
+        )
     }
 
 }

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		04513B3B50274B201FC2129B /* OnboardingStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6CC326D672D68089F68B9A /* OnboardingStateMachineTests.swift */; };
+		061A4E8EC513723FCB75AD36 /* ModelLifecycleCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F80683921A773119B3EB7B0 /* ModelLifecycleCoordinator.swift */; };
 		11F3E04FF1B5A228B6F9AFCF /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B5699B345259613E791401D /* MenuBarView.swift */; };
 		1207966B017E811D0CFEC295 /* TranscriptionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE739367C761B9FF65F4CAC9 /* TranscriptionCoordinator.swift */; };
 		1BE5E9211BF7F99CB7EB8285 /* ModelPhaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58165ED5E4FA2B1A1A5AF293 /* ModelPhaseTests.swift */; };
@@ -19,6 +20,7 @@
 		3D8DD76D91A768E9484C1330 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = BE4037B80AFC991BBFD79363 /* FirebaseCore */; };
 		5F0EA8CABD35F818E187ED97 /* ModelPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFBFB4110D3F513EF2143F88 /* ModelPhase.swift */; };
 		5F1112BDAF977A66901A3260 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = CD4D23D81DB6B8CF7A547851 /* KeyboardShortcuts */; };
+		676CBF543E8786A20144B29A /* ModelLifecycleCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8371051D4F68FE215E6AA492 /* ModelLifecycleCoordinatorTests.swift */; };
 		6E015D3819CFBF592FE225ED /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1DC99BBCCEEE22C84D397F /* OnboardingView.swift */; };
 		709E17AE25636EB3A8BA99A6 /* WisperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA399349B832D6632053FDA /* WisperApp.swift */; };
 		71B1E128F0ECB3C8826259EE /* PermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0F7C5C6DAD56C03C4EB827 /* PermissionService.swift */; };
@@ -66,6 +68,7 @@
 		15CD2053861687DB0F7DC45C /* TranscriptionCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionCoordinatorTests.swift; sourceTree = "<group>"; };
 		2984CF38A68CC1450F20470D /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		2EA9B8726D557B2D7E43491E /* TextInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInjector.swift; sourceTree = "<group>"; };
+		2F80683921A773119B3EB7B0 /* ModelLifecycleCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelLifecycleCoordinator.swift; sourceTree = "<group>"; };
 		3327C47D203EDA652D316DCC /* TranscriptionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionOverlay.swift; sourceTree = "<group>"; };
 		336D35D0C1608413279ABC4B /* DictationEditingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationEditingService.swift; sourceTree = "<group>"; };
 		34A162627B1350E8924C1617 /* TranscriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionEngine.swift; sourceTree = "<group>"; };
@@ -80,6 +83,7 @@
 		6B5699B345259613E791401D /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		72109C7C436060EB163436C9 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		81BB0AE0FC393F48AC134D38 /* HallucinationFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HallucinationFilterTests.swift; sourceTree = "<group>"; };
+		8371051D4F68FE215E6AA492 /* ModelLifecycleCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelLifecycleCoordinatorTests.swift; sourceTree = "<group>"; };
 		87383B756FBA7C899AD44759 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		88CC380054CCDCB89A2617A9 /* Wisper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Wisper.entitlements; sourceTree = "<group>"; };
 		A72340CE707E7F9FE2756590 /* HotkeyManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManagerTests.swift; sourceTree = "<group>"; };
@@ -122,6 +126,7 @@
 		16EB0C525A2690462E11B518 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				2F80683921A773119B3EB7B0 /* ModelLifecycleCoordinator.swift */,
 				AA0F7C5C6DAD56C03C4EB827 /* PermissionService.swift */,
 			);
 			path = Services;
@@ -186,6 +191,7 @@
 				A72340CE707E7F9FE2756590 /* HotkeyManagerTests.swift */,
 				140D520F0CA7612CBFFA5262 /* LanguageSupportTests.swift */,
 				CD4D1FF931C65A38F93AFC1D /* ModelDownloadCacheTests.swift */,
+				8371051D4F68FE215E6AA492 /* ModelLifecycleCoordinatorTests.swift */,
 				58165ED5E4FA2B1A1A5AF293 /* ModelPhaseTests.swift */,
 				CE6CC326D672D68089F68B9A /* OnboardingStateMachineTests.swift */,
 				B1DD16661EA594FB072357CF /* OverlayPositioningTests.swift */,
@@ -364,6 +370,7 @@
 				CA0EA91AD2DD5F7149021001 /* HotkeyManagerTests.swift in Sources */,
 				E78922635564CAB022849177 /* LanguageSupportTests.swift in Sources */,
 				F01444EECE5B1F433532A627 /* ModelDownloadCacheTests.swift in Sources */,
+				676CBF543E8786A20144B29A /* ModelLifecycleCoordinatorTests.swift in Sources */,
 				1BE5E9211BF7F99CB7EB8285 /* ModelPhaseTests.swift in Sources */,
 				04513B3B50274B201FC2129B /* OnboardingStateMachineTests.swift in Sources */,
 				7996555E6677F944BC5E7BF2 /* OverlayPositioningTests.swift in Sources */,
@@ -386,6 +393,7 @@
 				E859E4CF65380BB0EF8CC981 /* HotkeyManager.swift in Sources */,
 				83DCC5A8951EEC7D570763D4 /* L10n.swift in Sources */,
 				11F3E04FF1B5A228B6F9AFCF /* MenuBarView.swift in Sources */,
+				061A4E8EC513723FCB75AD36 /* ModelLifecycleCoordinator.swift in Sources */,
 				5F0EA8CABD35F818E187ED97 /* ModelPhase.swift in Sources */,
 				1E5187DD8C5EDEAF8B1A2A9D /* OnboardingStateMachine.swift in Sources */,
 				6E015D3819CFBF592FE225ED /* OnboardingView.swift in Sources */,
