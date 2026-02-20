@@ -101,10 +101,10 @@ final class AppState: ObservableObject {
     @AppStorage("selectedInputDeviceUID") var selectedInputDeviceUID = ""
     @Published private(set) var onboardingPresentationToken = UUID()
     private var hasRunInitialPermissionAudit = false
-    private var recordingStartedAt: Date?
     private let permissionService = PermissionService()
     private let transcriptionCoordinator = TranscriptionCoordinator()
     private let modelLifecycleCoordinator = ModelLifecycleCoordinator()
+    private let recordingSessionCoordinator = RecordingSessionCoordinator()
 
     // MARK: - Engines
 
@@ -282,7 +282,7 @@ final class AppState: ObservableObject {
                         text: text,
                         mode: self.transcriptionMode,
                         confirmedText: self.confirmedText,
-                        recordingStartedAt: self.recordingStartedAt,
+                        recordingStartedAt: self.recordingSessionCoordinator.recordingStartedAt,
                         chunkStartedAt: chunkStartedAt
                     )
                     self.confirmedText = result.confirmedText
@@ -292,7 +292,7 @@ final class AppState: ObservableObject {
                         self.runtimeMetrics.registerChunk(
                             text: metricsText,
                             processingMs: processingMs,
-                            sessionStartedAt: self.recordingStartedAt
+                            sessionStartedAt: self.recordingSessionCoordinator.recordingStartedAt
                         )
                     }
 
@@ -471,12 +471,19 @@ final class AppState: ObservableObject {
     }
 
     func startRecording() {
-        guard !isRecording else {
+        let deferredByModel = modelLifecycleCoordinator.shouldDeferRecordingStart(modelPhase: modelPhase)
+        let preflight = recordingSessionCoordinator.evaluateStart(
+            isRecording: isRecording,
+            deferredByModel: deferredByModel,
+            needsMicrophone: false,
+            needsAccessibility: false
+        )
+
+        switch preflight {
+        case .alreadyRecording:
             print("[Wisper] startRecording BLOCKED — already recording")
             return
-        }
-
-        guard !modelLifecycleCoordinator.shouldDeferRecordingStart(modelPhase: modelPhase) else {
+        case .deferredByModel:
             if !modelPhase.isActive {
                 Task(priority: .utility) { [weak self] in
                     await self?.loadModel()
@@ -484,24 +491,36 @@ final class AppState: ObservableObject {
             }
             print("[Wisper] startRecording deferred — model loading in background")
             return
+        case .readyToStart, .blockedMicrophone, .blockedAccessibility:
+            break
         }
 
         // Recheck permissions each time
         refreshPermissionState()
-        guard !needsMicrophone else {
+        let postPermission = recordingSessionCoordinator.evaluateStart(
+            isRecording: isRecording,
+            deferredByModel: false,
+            needsMicrophone: needsMicrophone,
+            needsAccessibility: needsAccessibility
+        )
+
+        switch postPermission {
+        case .blockedMicrophone:
             print("[Wisper] ⚠️ startRecording BLOCKED — no microphone permission")
             modelLifecycleCoordinator.clearQueuedRecordingStart()
             requestOnboardingPresentation()
             NSApp.activate(ignoringOtherApps: true)
             return
-        }
-
-        guard !needsAccessibility else {
+        case .blockedAccessibility:
             print("[Wisper] ⚠️ startRecording BLOCKED — no accessibility permission")
             modelLifecycleCoordinator.clearQueuedRecordingStart()
             requestOnboardingPresentation()
             NSApp.activate(ignoringOtherApps: true)
             return
+        case .alreadyRecording, .deferredByModel:
+            return
+        case .readyToStart:
+            break
         }
 
         textInjector?.captureTargetApp()
@@ -510,17 +529,20 @@ final class AppState: ObservableObject {
         confirmedText = ""
         partialText = ""
         audioLevel = 0
-        recordingStartedAt = .now
+        recordingSessionCoordinator.beginSession()
         runtimeMetrics.reset()
         let resetResult = transcriptionCoordinator.resetSession()
         confirmedText = resetResult.confirmedText
         partialText = resetResult.partialText
 
+        let captureSettings = recordingSessionCoordinator.captureSettings(
+            whisperModeEnabled: whisperModeEnabled
+        )
         let engine = transcriptionEngine
         let captureStarted = audioEngine?.startCapture(
             inputDeviceUID: inputDeviceUIDForCapture,
-            inputGain: whisperModeEnabled ? 2.2 : 1.0,
-            noiseGate: whisperModeEnabled ? 0.004 : 0,
+            inputGain: captureSettings.inputGain,
+            noiseGate: captureSettings.noiseGate,
             onBuffer: { buffer in
                 engine?.processAudioBuffer(buffer)
             },
@@ -533,6 +555,7 @@ final class AppState: ObservableObject {
 
         guard captureStarted else {
             print("[Wisper] ⚠️ startRecording FAILED — audio capture could not start")
+            recordingSessionCoordinator.resetSessionState()
             transcriptionEngine?.clearBuffer()
             return
         }
@@ -544,15 +567,18 @@ final class AppState: ObservableObject {
     }
 
     func stopRecording() {
-        guard isRecording else { return }
+        let stopEvaluation = recordingSessionCoordinator.stopSession(
+            isRecording: isRecording,
+            transcriptionMode: transcriptionMode
+        )
+        guard case let .stopped(shouldFinalizeOnRelease) = stopEvaluation else { return }
         isRecording = false
         audioLevel = 0
-        recordingStartedAt = nil
         audioEngine?.stopCapture()
         overlayController.hide()
         print("[Wisper] ⏹ Recording stopped (confirmed: \(confirmedText.count) chars)")
 
-        if transcriptionMode == .onRelease {
+        if shouldFinalizeOnRelease {
             transcriptionEngine?.finalize { [weak self] in
                 Task { @MainActor in
                     guard let self else { return }
