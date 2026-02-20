@@ -295,6 +295,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 6AD5E4564705C5BD02492A9A /* Build configuration list for PBXNativeTarget "Speex" */;
 			buildPhases = (
+				D343F2D8740C5FA4F24D811E /* Embed Turbo Model */,
 				BEC8F3018F5DFB8C5172F8AF /* Sources */,
 				E0F68AEEBCE6E2325876014F /* Resources */,
 				602EBAB072FE8B6ABE1EDDC2 /* Frameworks */,
@@ -370,6 +371,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		D343F2D8740C5FA4F24D811E /* Embed Turbo Model */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Turbo Model";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "bash \"$SRCROOT/scripts/embed_turbo_model.sh\"";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		8AE0335112863536E73628F0 /* Sources */ = {

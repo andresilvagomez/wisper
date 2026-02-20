@@ -23,6 +23,9 @@ targets:
     platform: macOS
     sources:
       - path: Speex
+    preBuildScripts:
+      - name: Embed Turbo Model
+        script: bash "$SRCROOT/scripts/embed_turbo_model.sh"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.andresilvagomez.speex
