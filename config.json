@@ -1,7 +1,7 @@
 {
   "id": "ws_11b20a05",
-  "name": "wisper",
-  "slug": "wisper",
+  "name": "speex",
+  "slug": "speex",
   "defaults": {
     "permissionMode": "safe",
     "cyclablePermissionModes": [

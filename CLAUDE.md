@@ -1,11 +1,11 @@
-# Wisper
+# Speex
 
 macOS menu bar app for on-device speech-to-text using WhisperKit. Press your configured global shortcut (default ⌥Space) to record, then text gets pasted where the cursor is.
 
 ## Architecture
 
 ```
-WisperApp (SwiftUI @main, MenuBarExtra)
+SpeexApp (SwiftUI @main, MenuBarExtra)
   └─ AppState (@MainActor, central state)
        ├─ AudioEngine        → Microphone capture (16kHz mono PCM)
        ├─ TranscriptionEngine → WhisperKit ML inference
@@ -17,9 +17,9 @@ WisperApp (SwiftUI @main, MenuBarExtra)
 ## Project Structure
 
 ```
-Wisper/
+Speex/
 ├── App/
-│   ├── WisperApp.swift          # @main entry, MenuBarExtra + Settings + Onboarding scenes
+│   ├── SpeexApp.swift          # @main entry, MenuBarExtra + Settings + Onboarding scenes
 │   ├── AppState.swift           # Central state: recording, model loading, engines init
 │   └── ModelPhase.swift         # Enum: idle → downloading → loading → ready | error
 ├── Audio/
@@ -36,8 +36,8 @@ Wisper/
 │   └── SettingsView.swift       # Tabs: General, Model, About
 └── Resources/
     ├── Info.plist               # LSUIElement=true, usage descriptions
-    └── Wisper.entitlements      # audio-input + automation.apple-events
-WisperTests/
+    └── Speex.entitlements      # audio-input + automation.apple-events
+SpeexTests/
 ├── HallucinationFilterTests.swift  # Tests for whisper hallucination filtering
 ├── TextInjectorTests.swift         # Tests for text injection logic
 └── ModelPhaseTests.swift           # Tests for model phase state machine
@@ -47,7 +47,7 @@ WisperTests/
 
 - **XcodeGen** — project generated from `project.yml`, run `xcodegen generate` after changes
 - **Swift 6.0**, macOS 14.0+ deployment target
-- **Bundle ID**: `com.andresilvagomez.wisper`
+- **Bundle ID**: `com.andresilvagomez.speex`
 
 ### Dependencies (SPM)
 
@@ -60,9 +60,9 @@ WisperTests/
 
 ```bash
 xcodegen generate
-# Then open Wisper.xcodeproj in Xcode and ⌘R
+# Then open Speex.xcodeproj in Xcode and ⌘R
 # Or from CLI (requires Xcode, not just CommandLineTools):
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme Wisper -configuration Debug build
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme Speex -configuration Debug build
 ```
 
 ### Code Signing
@@ -77,7 +77,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme Wisp
 
 ```bash
 # Run unit tests (26 tests across 3 suites)
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme WisperTests -configuration Debug test -destination 'platform=macOS'
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme SpeexTests -configuration Debug test -destination 'platform=macOS'
 ```
 
 Test suites: `HallucinationFilterTests`, `TextInjectorTests`, `ModelPhaseTests`
@@ -148,7 +148,7 @@ Spanish (default), English, Portuguese, French, German, Italian, Japanese, Korea
 | `com.apple.security.device.audio-input` | Microphone access |
 | `com.apple.security.automation.apple-events` | Send events to other apps (paste) |
 
-**Warning**: XcodeGen can empty `Wisper.entitlements` on regeneration. The `properties` block in `project.yml` under `entitlements` ensures they're restored. Always verify after `xcodegen generate`.
+**Warning**: XcodeGen can empty `Speex.entitlements` on regeneration. The `properties` block in `project.yml` under `entitlements` ensures they're restored. Always verify after `xcodegen generate`.
 
 ## Info.plist Keys
 
@@ -178,4 +178,4 @@ Spanish (default), English, Portuguese, French, German, Italian, Japanese, Korea
 
 ## GitHub
 
-Repository: [github.com/andresilvagomez/wisper](https://github.com/andresilvagomez/wisper)
+Repository: [github.com/andresilvagomez/speex](https://github.com/andresilvagomez/speex)
