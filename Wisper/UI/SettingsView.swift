@@ -10,18 +10,18 @@ struct SettingsView: View {
             GeneralSettingsTab()
                 .environmentObject(appState)
                 .tabItem {
-                    Label("General", systemImage: "gear")
+                    Label(L10n.t("General"), systemImage: "gear")
                 }
 
             ModelSettingsTab()
                 .environmentObject(appState)
                 .tabItem {
-                    Label("Model", systemImage: "brain")
+                    Label(L10n.t("Model"), systemImage: "brain")
                 }
 
             AboutTab()
                 .tabItem {
-                    Label("About", systemImage: "info.circle")
+                    Label(L10n.t("About"), systemImage: "info.circle")
                 }
         }
         .frame(minWidth: 520, minHeight: 380)
@@ -41,14 +41,14 @@ struct GeneralSettingsTab: View {
 
     var body: some View {
         Form {
-            Section("Language") {
-                Picker("Interface language", selection: $appState.interfaceLanguage) {
+            Section(L10n.t("Language")) {
+                Picker(L10n.t("Interface language"), selection: $appState.interfaceLanguage) {
                     ForEach(AppState.availableInterfaceLanguages, id: \.code) { lang in
                         Text(lang.name).tag(lang.code)
                     }
                 }
 
-                Picker("Transcription language", selection: $appState.selectedLanguage) {
+                Picker(L10n.t("Transcription language"), selection: $appState.selectedLanguage) {
                     ForEach(AppState.availableLanguages, id: \.code) { lang in
                         Text(lang.name).tag(lang.code)
                     }
@@ -58,34 +58,34 @@ struct GeneralSettingsTab: View {
                 }
             }
 
-            Section("Recording") {
-                KeyboardShortcuts.Recorder("Shortcut", name: HotkeyManager.shortcutName)
+            Section(L10n.t("Recording")) {
+                KeyboardShortcuts.Recorder(L10n.t("Shortcut"), name: HotkeyManager.shortcutName)
 
-                Toggle("Whisper mode (quiet voice)", isOn: $appState.whisperModeEnabled)
+                Toggle(L10n.t("settings.whisper_mode"), isOn: $appState.whisperModeEnabled)
 
                 if appState.hasMultipleInputDevices {
-                    Picker("Input source", selection: $appState.selectedInputDeviceUID) {
+                    Picker(L10n.t("Input source"), selection: $appState.selectedInputDeviceUID) {
                         ForEach(appState.availableInputDevices) { device in
                             Text(device.name).tag(device.id)
                         }
                     }
                 }
 
-                Picker("Mode", selection: $appState.recordingMode) {
+                Picker(L10n.t("Mode"), selection: $appState.recordingMode) {
                     ForEach(RecordingMode.allCases, id: \.self) { mode in
                         Text(mode.localizedTitle).tag(mode)
                     }
                 }
 
-                Picker("Text injection", selection: $appState.transcriptionMode) {
+                Picker(L10n.t("Text injection"), selection: $appState.transcriptionMode) {
                     ForEach(TranscriptionMode.allCases, id: \.self) { mode in
                         Text(mode.localizedTitle).tag(mode)
                     }
                 }
             }
 
-            Section("System") {
-                Toggle("Launch at login", isOn: $appState.launchAtLogin)
+            Section(L10n.t("System")) {
+                Toggle(L10n.t("Launch at login"), isOn: $appState.launchAtLogin)
                     .onChange(of: appState.launchAtLogin) { _, newValue in
                         setLaunchAtLogin(newValue)
                     }
@@ -118,62 +118,95 @@ struct ModelSettingsTab: View {
 
     var body: some View {
         Form {
-            Section("Whisper Model") {
-                Picker("Model", selection: $appState.selectedModel) {
-                    ForEach(AppState.availableModels, id: \.id) { model in
-                        VStack(alignment: .leading) {
-                            Text(model.name)
-                            Text(model.size)
+            Section(L10n.t("settings.model.included.section")) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(L10n.t("settings.model.included.title"))
+                                .fontWeight(.semibold)
+                            Text(L10n.t("settings.model.included.subtitle"))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                        .tag(model.id)
+                        Spacer()
+                        Label(L10n.t("settings.model.included.active"), systemImage: "checkmark.seal.fill")
+                            .foregroundColor(.green)
+                            .font(.caption)
+                    }
+
+                    if appState.selectedModel != AppState.defaultBundledModelID {
+                        Button(L10n.t("settings.model.use_default")) {
+                            appState.useDefaultBundledModel()
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(appState.isRecording || appState.modelPhase.isActive)
                     }
                 }
-                .disabled(appState.isRecording || appState.modelPhase.isActive)
-                .onChange(of: appState.selectedModel) { _, _ in
-                    appState.reloadModel()
-                }
+            }
 
+            Section(L10n.t("settings.model.optional.section")) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(L10n.t("settings.model.optional.title"))
+                                .fontWeight(.semibold)
+                            Text(L10n.t("settings.model.optional.subtitle"))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        if appState.selectedModel == AppState.optionalSuperModelID, appState.modelPhase.isReady {
+                            Label(L10n.t("settings.model.optional.in_use"), systemImage: "bolt.fill")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        } else if appState.isModelInstalledLocally(AppState.optionalSuperModelID) {
+                            Label(L10n.t("settings.model.optional.installed"), systemImage: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        } else {
+                            Label(L10n.t("settings.model.optional.not_installed"), systemImage: "arrow.down.circle")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Button(appState.isModelInstalledLocally(AppState.optionalSuperModelID) ? L10n.t("settings.model.optional.use") : L10n.t("settings.model.optional.install_use")) {
+                        appState.installAndUseSuperModel()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(appState.isRecording || appState.modelPhase.isActive)
+                }
+            }
+
+            Section(L10n.t("settings.model.load_status")) {
                 switch appState.modelPhase {
                 case .downloading(let progress):
                     ProgressView(value: progress) {
-                        Text(String(format: "Downloading... %.1f%%", progress * 100))
+                        Text(L10n.f("settings.model.downloading_percent", progress * 100))
                     }
-
                 case .loading(let step):
                     HStack(spacing: 8) {
-                        ProgressView()
-                            .controlSize(.small)
+                        ProgressView().controlSize(.small)
                         Text(step)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-
                 case .ready:
-                    Label("Model loaded and ready", systemImage: "checkmark.circle.fill")
+                    Label(L10n.t("settings.model.ready"), systemImage: "checkmark.circle.fill")
                         .foregroundColor(.green)
-
                 case .error(let message):
                     Label(message, systemImage: "exclamationmark.triangle.fill")
                         .foregroundColor(.orange)
                         .font(.caption)
-
-                    Button("Retry") {
-                        Task { await appState.loadModel() }
-                    }
-                    .buttonStyle(.borderedProminent)
-
                 case .idle:
-                    Button("Download & Load Model") {
-                        Task { await appState.loadModel() }
-                    }
-                    .buttonStyle(.borderedProminent)
+                    Text(L10n.t("settings.model.idle"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
 
-            Section("Info") {
-                Text("Models are stored locally and run entirely on your Mac using Apple Silicon. No data is sent to the cloud.")
+            Section(L10n.t("Info")) {
+                Text(L10n.t("settings.model.info"))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

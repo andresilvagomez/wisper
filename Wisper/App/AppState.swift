@@ -50,7 +50,7 @@ final class AppState: ObservableObject {
     // MARK: - Model State
 
     @Published var modelPhase: ModelPhase = .idle
-    @AppStorage("selectedModel") var selectedModel = "openai_whisper-base"
+    @AppStorage("selectedModel") var selectedModel = defaultBundledModelID
 
     // MARK: - Settings
 
@@ -194,23 +194,23 @@ final class AppState: ObservableObject {
         ("de", "Deutsch"),
     ]
 
+    static let defaultBundledModelID = "openai_whisper-large-v3-v20240930_turbo"
+    static let optionalSuperModelID = "openai_whisper-large-v3-v20240930"
+
     static let availableModels: [(id: String, name: String, size: String)] = [
-        ("openai_whisper-base", "Base (Fast, good for testing)", "~80 MB"),
-        ("openai_whisper-small", "Small (Balanced)", "~216 MB"),
-        ("openai_whisper-large-v3-v20240930_turbo", "Large V3 Turbo (Best)", "~632 MB"),
-        ("openai_whisper-large-v3-v20240930", "Large V3 (Highest quality)", "~1.5 GB"),
+        (defaultBundledModelID, "Whisper Turbo (Predeterminado)", "~632 MB"),
+        (optionalSuperModelID, "Whisper Super Pro", "~1.5 GB"),
     ]
 
     /// Priority from highest quality to lowest quality.
     static let modelQualityPriority: [String] = [
-        "openai_whisper-large-v3-v20240930",
-        "openai_whisper-large-v3-v20240930_turbo",
-        "openai_whisper-small",
-        "openai_whisper-base",
+        optionalSuperModelID,
+        defaultBundledModelID,
     ]
 
     init() {
         setupEngines()
+        normalizeSelectedModelIfNeeded()
         applyBestDownloadedModelAsDefaultIfNeeded()
         Task(priority: .utility) { [weak self] in
             await self?.loadModel()
@@ -529,7 +529,7 @@ final class AppState: ObservableObject {
     func loadModel() async {
         guard !modelPhase.isActive else { return }
 
-        modelPhase = .loading(step: "Preparing model...")
+        modelPhase = .loading(step: L10n.t("model.phase.preparing"))
 
         let engine = transcriptionEngine
         let model = selectedModel
@@ -560,12 +560,40 @@ final class AppState: ObservableObject {
         Task { await loadModel() }
     }
 
+    func useDefaultBundledModel() {
+        guard selectedModel != Self.defaultBundledModelID else { return }
+        selectedModel = Self.defaultBundledModelID
+        reloadModel()
+    }
+
+    func installAndUseSuperModel() {
+        guard !isRecording, !modelPhase.isActive else { return }
+        selectedModel = Self.optionalSuperModelID
+        Task { await loadModel() }
+    }
+
+    func isModelInstalledLocally(_ modelID: String) -> Bool {
+        TranscriptionEngine.isModelBundled(modelID) || TranscriptionEngine.isModelDownloaded(modelID)
+    }
+
+    private func normalizeSelectedModelIfNeeded() {
+        let validIDs = Set(Self.availableModels.map(\.id))
+        if !validIDs.contains(selectedModel) {
+            selectedModel = Self.defaultBundledModelID
+        }
+    }
+
     private func applyBestDownloadedModelAsDefaultIfNeeded() {
         let downloadedModelIDs = Self.downloadedModelIDs()
-        guard !downloadedModelIDs.isEmpty else { return }
+        guard !downloadedModelIDs.isEmpty else {
+            if selectedModel != Self.optionalSuperModelID {
+                selectedModel = Self.defaultBundledModelID
+            }
+            return
+        }
 
         // Respect user preference if their chosen model is already downloaded.
-        if downloadedModelIDs.contains(selectedModel) {
+        if downloadedModelIDs.contains(selectedModel) || selectedModel == Self.defaultBundledModelID {
             return
         }
 

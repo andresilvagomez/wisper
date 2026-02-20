@@ -66,9 +66,12 @@ final class TranscriptionEngine: @unchecked Sendable {
             onPhaseChange(.downloading(progress: 0))
 
             let downloadedModelFolder: URL
-            if Self.isModelDownloaded(modelName) {
+            if let bundledFolder = Self.bundledModelFolder(for: modelName) {
+                downloadedModelFolder = bundledFolder
+                onPhaseChange(.loading(step: L10n.t("model.phase.using_bundled")))
+            } else if Self.isModelDownloaded(modelName) {
                 downloadedModelFolder = Self.localModelFolder(for: modelName)
-                onPhaseChange(.loading(step: "Using local model cache..."))
+                onPhaseChange(.loading(step: L10n.t("model.phase.using_local_cache")))
             } else {
                 downloadedModelFolder = try await downloadModelWithRetry(
                     modelName: modelName,
@@ -76,7 +79,7 @@ final class TranscriptionEngine: @unchecked Sendable {
                 )
             }
 
-            onPhaseChange(.loading(step: "Preparing \(modelName)..."))
+            onPhaseChange(.loading(step: L10n.f("model.phase.preparing_named", modelName)))
 
             let config = WhisperKitConfig(
                 modelFolder: downloadedModelFolder.path,
@@ -370,6 +373,20 @@ final class TranscriptionEngine: @unchecked Sendable {
 
     static func isModelDownloaded(_ modelName: String) -> Bool {
         isModelFolderValid(localModelFolder(for: modelName))
+    }
+
+    static func bundledModelFolder(for modelName: String) -> URL? {
+        guard let resourceURL = Bundle.main.resourceURL else { return nil }
+        let modelFolder = resourceURL
+            .appendingPathComponent("Models", isDirectory: true)
+            .appendingPathComponent("whisperkit-coreml", isDirectory: true)
+            .appendingPathComponent(modelName, isDirectory: true)
+
+        return isModelFolderValid(modelFolder) ? modelFolder : nil
+    }
+
+    static func isModelBundled(_ modelName: String) -> Bool {
+        bundledModelFolder(for: modelName) != nil
     }
 
     static func isModelFolderValid(_ folderURL: URL) -> Bool {

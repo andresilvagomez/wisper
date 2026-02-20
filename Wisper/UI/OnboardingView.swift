@@ -390,13 +390,14 @@ struct OnboardingView: View {
 
             GroupBox("Modelo de transcripción") {
                 VStack(alignment: .leading, spacing: 10) {
-                    Picker("Modelo", selection: $appState.selectedModel) {
-                        ForEach(AppState.availableModels, id: \.id) { model in
-                            Text("\(model.name) (\(model.size))").tag(model.id)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .disabled(appState.modelPhase.isActive)
+                    Label(L10n.t("onboarding.model.default_included"), systemImage: "checkmark.seal.fill")
+                        .foregroundColor(.green)
+                        .font(.callout)
+
+                    Text(L10n.t("onboarding.model.super_pro_note"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Picker("Idioma", selection: $appState.selectedLanguage) {
                         ForEach(AppState.availableLanguages, id: \.code) { lang in
