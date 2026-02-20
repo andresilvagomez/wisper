@@ -30,8 +30,12 @@ final class AudioEngine: @unchecked Sendable {
         engine = AVAudioEngine()
         guard let engine else { return false }
 
-        if let inputDeviceUID, !inputDeviceUID.isEmpty {
-            _ = setInputDevice(uid: inputDeviceUID, on: engine)
+        let requestedInputDeviceUID = inputDeviceUID?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let shouldSelectSpecificInput = (requestedInputDeviceUID?.isEmpty == false)
+        var preStartSelectionApplied = false
+
+        if let requestedInputDeviceUID, shouldSelectSpecificInput {
+            preStartSelectionApplied = setInputDevice(uid: requestedInputDeviceUID, on: engine)
         }
 
         let inputNode = engine.inputNode
@@ -108,6 +112,20 @@ final class AudioEngine: @unchecked Sendable {
 
         do {
             try engine.start()
+
+            if let requestedInputDeviceUID, shouldSelectSpecificInput {
+                let currentUID = currentInputDeviceUID(on: engine)
+                if currentUID != requestedInputDeviceUID {
+                    let postStartApplied = setInputDevice(uid: requestedInputDeviceUID, on: engine)
+                    let resolvedUID = currentInputDeviceUID(on: engine) ?? "unknown"
+                    if postStartApplied {
+                        print("[AudioEngine] ✅ Input device switched after start: \(resolvedUID)")
+                    } else {
+                        print("[AudioEngine] ⚠️ Requested input device not applied (requested: \(requestedInputDeviceUID), current: \(resolvedUID), pre-start applied: \(preStartSelectionApplied))")
+                    }
+                }
+            }
+
             isCapturing = true
             print("[AudioEngine] Capture started")
             return true
@@ -228,6 +246,24 @@ final class AudioEngine: @unchecked Sendable {
 
         guard status == noErr else { return nil }
         return uidForAudioDeviceID(deviceID)
+    }
+
+    private func currentInputDeviceUID(on engine: AVAudioEngine) -> String? {
+        guard let audioUnit = engine.inputNode.audioUnit else { return nil }
+
+        var deviceID = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        let status = AudioUnitGetProperty(
+            audioUnit,
+            kAudioOutputUnitProperty_CurrentDevice,
+            kAudioUnitScope_Global,
+            0,
+            &deviceID,
+            &size
+        )
+
+        guard status == noErr else { return nil }
+        return Self.uidForAudioDeviceID(deviceID)
     }
 
     private func setInputDevice(uid: String, on engine: AVAudioEngine) -> Bool {
