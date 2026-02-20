@@ -55,9 +55,9 @@
 "Transcription" = "Transcription";
 "Transcription language" = "Transcription language";
 "Verificar de nuevo" = "Check again";
-"Whisper Model" = "Whisper model";
-"Speex transcribe en tu Mac con Whisper.
-Sin enviar audio a la nube." = "Speex transcribes on your Mac with Whisper.
+"Whisper Model" = "Speex model";
+"Speex transcribe en tu Mac con IA local.
+Sin enviar audio a la nube." = "Speex transcribes on your Mac with local AI.
 No audio is sent to the cloud.";
 "audio.input.fallback" = "Microphone";
 "menu.no_shortcut" = "No shortcut";
@@ -98,12 +98,12 @@ No audio is sent to the cloud.";
 "model.phase.using_local_cache" = "Utilisation du cache local du modèle...";
 "model.phase.preparing_named" = "Préparation de %@...";
 "settings.model.included.section" = "Modèle inclus";
-"settings.model.included.title" = "Whisper Turbo";
+"settings.model.included.title" = "Speex Turbo";
 "settings.model.included.subtitle" = "Inclus par défaut dans l’app (~632 MB)";
 "settings.model.included.active" = "Actif";
 "settings.model.use_default" = "Utiliser le modèle par défaut";
 "settings.model.optional.section" = "Modèle optionnel";
-"settings.model.optional.title" = "Whisper Super Pro";
+"settings.model.optional.title" = "Speex Super Pro";
 "settings.model.optional.subtitle" = "Qualité maximale (~1.5 GB)";
 "settings.model.optional.in_use" = "Utilisé";
 "settings.model.optional.installed" = "Installé";
@@ -120,7 +120,7 @@ No audio is sent to the cloud.";
 "text.polish.off" = "Désactivé (littéral)";
 "text.polish.basic" = "Basique (ponctuation + majuscules)";
 "text.polish.fluent" = "Fluide (rédaction plus propre)";
-"onboarding.model.default_included" = "Whisper Turbo inclus par défaut (~632 MB)";
+"onboarding.model.default_included" = "Speex Turbo inclus par défaut (~632 MB)";
 "onboarding.model.super_pro_note" = "Vous pourrez ensuite installer Super Pro (~1.5 GB) depuis les Réglages, en conservant les deux modèles.";
 "menu.metrics.summary" = "TTFX : %d ms · Blocs : %d · Moyenne : %d ms";
 "menu.permissions.open_guide" = "Cliquez pour ouvrir le guide pas à pas";

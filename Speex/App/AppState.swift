@@ -239,8 +239,8 @@ final class AppState: ObservableObject {
     static let optionalSuperModelID = "openai_whisper-large-v3-v20240930"
 
     static let availableModels: [(id: String, name: String, size: String)] = [
-        (defaultBundledModelID, "Whisper Turbo (Predeterminado)", "~632 MB"),
-        (optionalSuperModelID, "Whisper Super Pro", "~1.5 GB"),
+        (defaultBundledModelID, "Speex Turbo (Predeterminado)", "~632 MB"),
+        (optionalSuperModelID, "Speex Super Pro", "~1.5 GB"),
     ]
 
     /// Priority from highest quality to lowest quality.

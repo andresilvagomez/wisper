@@ -159,7 +159,7 @@ struct OnboardingView: View {
                 .font(.title)
                 .fontWeight(.bold)
 
-            Text("Speex transcribe en tu Mac con Whisper.\nSin enviar audio a la nube.")
+            Text("Speex transcribe en tu Mac con IA local.\nSin enviar audio a la nube.")
                 .multilineTextAlignment(.center)
                 .foregroundColor(.secondary)
 

@@ -56,9 +56,9 @@
 "Transcription" = "Transcription";
 "Transcription language" = "Transcription language";
 "Verificar de nuevo" = "Check again";
-"Whisper Model" = "Whisper model";
-"Speex transcribe en tu Mac con Whisper.
-Sin enviar audio a la nube." = "Speex transcribes on your Mac with Whisper.
+"Whisper Model" = "Speex model";
+"Speex transcribe en tu Mac con IA local.
+Sin enviar audio a la nube." = "Speex transcribes on your Mac with local AI.
 No audio is sent to the cloud.";
 "audio.input.fallback" = "Microphone";
 "menu.no_shortcut" = "No shortcut";
@@ -99,12 +99,12 @@ No audio is sent to the cloud.";
 "model.phase.using_local_cache" = "Using local model cache...";
 "model.phase.preparing_named" = "Preparing %@...";
 "settings.model.included.section" = "Included model";
-"settings.model.included.title" = "Whisper Turbo";
+"settings.model.included.title" = "Speex Turbo";
 "settings.model.included.subtitle" = "Included by default in the app (~632 MB)";
 "settings.model.included.active" = "Active";
 "settings.model.use_default" = "Use default model";
 "settings.model.optional.section" = "Optional model";
-"settings.model.optional.title" = "Whisper Super Pro";
+"settings.model.optional.title" = "Speex Super Pro";
 "settings.model.optional.subtitle" = "Maximum quality (~1.5 GB)";
 "settings.model.optional.in_use" = "In use";
 "settings.model.optional.installed" = "Installed";
@@ -116,12 +116,12 @@ No audio is sent to the cloud.";
 "settings.model.ready" = "Model ready to transcribe";
 "settings.model.idle" = "No activity";
 "settings.model.info" = "Turbo is included by default. If you install Super Pro, both models will use local disk space.";
-"settings.whisper_mode" = "Whisper mode (quiet voice)";
+"settings.whisper_mode" = "Quiet voice mode";
 "settings.text_polish" = "Text polish";
 "text.polish.off" = "Off (literal)";
 "text.polish.basic" = "Basic (punctuation + case)";
 "text.polish.fluent" = "Fluent (cleaner writing)";
-"onboarding.model.default_included" = "Whisper Turbo included by default (~632 MB)";
+"onboarding.model.default_included" = "Speex Turbo included by default (~632 MB)";
 "onboarding.model.super_pro_note" = "Later you can install Super Pro (~1.5 GB) from Settings, keeping both models.";
 "menu.metrics.summary" = "TTFX: %d ms · Chunks: %d · Avg: %d ms";
 "menu.permissions.open_guide" = "Click to open step-by-step guide";

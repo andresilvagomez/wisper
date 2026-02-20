@@ -55,9 +55,9 @@
 "Transcription" = "Transcription";
 "Transcription language" = "Transcription language";
 "Verificar de nuevo" = "Check again";
-"Whisper Model" = "Whisper model";
-"Speex transcribe en tu Mac con Whisper.
-Sin enviar audio a la nube." = "Speex transcribes on your Mac with Whisper.
+"Whisper Model" = "Speex model";
+"Speex transcribe en tu Mac con IA local.
+Sin enviar audio a la nube." = "Speex transcribes on your Mac with local AI.
 No audio is sent to the cloud.";
 "audio.input.fallback" = "Mikrofon";
 "menu.no_shortcut" = "No shortcut";
@@ -98,12 +98,12 @@ No audio is sent to the cloud.";
 "model.phase.using_local_cache" = "Lokaler Modell-Cache wird verwendet...";
 "model.phase.preparing_named" = "%@ wird vorbereitet...";
 "settings.model.included.section" = "Enthaltenes Modell";
-"settings.model.included.title" = "Whisper Turbo";
+"settings.model.included.title" = "Speex Turbo";
 "settings.model.included.subtitle" = "Standardmäßig in der App enthalten (~632 MB)";
 "settings.model.included.active" = "Aktiv";
 "settings.model.use_default" = "Standardmodell verwenden";
 "settings.model.optional.section" = "Optionales Modell";
-"settings.model.optional.title" = "Whisper Super Pro";
+"settings.model.optional.title" = "Speex Super Pro";
 "settings.model.optional.subtitle" = "Maximale Qualität (~1.5 GB)";
 "settings.model.optional.in_use" = "In Verwendung";
 "settings.model.optional.installed" = "Installiert";
@@ -115,12 +115,12 @@ No audio is sent to the cloud.";
 "settings.model.ready" = "Modell bereit zur Transkription";
 "settings.model.idle" = "Keine Aktivität";
 "settings.model.info" = "Turbo ist standardmäßig enthalten. Wenn du Super Pro installierst, belegen beide Modelle lokalen Speicher.";
-"settings.whisper_mode" = "Whisper-Modus (leise Stimme)";
+"settings.whisper_mode" = "Leise-Stimme-Modus";
 "settings.text_polish" = "Textverbesserung";
 "text.polish.off" = "Aus (wörtlich)";
 "text.polish.basic" = "Basis (Zeichensetzung + Großschreibung)";
 "text.polish.fluent" = "Flüssig (sauberer Stil)";
-"onboarding.model.default_included" = "Whisper Turbo standardmäßig enthalten (~632 MB)";
+"onboarding.model.default_included" = "Speex Turbo standardmäßig enthalten (~632 MB)";
 "onboarding.model.super_pro_note" = "Später kannst du Super Pro (~1.5 GB) in den Einstellungen installieren und beide Modelle behalten.";
 "menu.metrics.summary" = "TTFX: %d ms · Blöcke: %d · Durchschnitt: %d ms";
 "menu.permissions.open_guide" = "Klicken, um die Schritt-für-Schritt-Anleitung zu öffnen";

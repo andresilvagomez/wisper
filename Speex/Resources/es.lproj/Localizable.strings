@@ -56,9 +56,9 @@
 "Transcription" = "Transcripción";
 "Transcription language" = "Idioma de transcripción";
 "Verificar de nuevo" = "Verificar de nuevo";
-"Whisper Model" = "Modelo Whisper";
-"Speex transcribe en tu Mac con Whisper.
-Sin enviar audio a la nube." = "Speex transcribe en tu Mac con Whisper.
+"Whisper Model" = "Modelo Speex";
+"Speex transcribe en tu Mac con IA local.
+Sin enviar audio a la nube." = "Speex transcribe en tu Mac con IA local.
 Sin enviar audio a la nube.";
 "audio.input.fallback" = "Micrófono";
 "menu.no_shortcut" = "Sin atajo";
@@ -99,12 +99,12 @@ Sin enviar audio a la nube.";
 "model.phase.using_local_cache" = "Usando caché local del modelo...";
 "model.phase.preparing_named" = "Preparando %@...";
 "settings.model.included.section" = "Modelo incluido";
-"settings.model.included.title" = "Whisper Turbo";
+"settings.model.included.title" = "Speex Turbo";
 "settings.model.included.subtitle" = "Predeterminado en la app (~632 MB)";
 "settings.model.included.active" = "Activo";
 "settings.model.use_default" = "Usar modelo predeterminado";
 "settings.model.optional.section" = "Modelo opcional";
-"settings.model.optional.title" = "Whisper Super Pro";
+"settings.model.optional.title" = "Speex Super Pro";
 "settings.model.optional.subtitle" = "Calidad máxima (~1.5 GB)";
 "settings.model.optional.in_use" = "En uso";
 "settings.model.optional.installed" = "Instalado";
@@ -121,7 +121,7 @@ Sin enviar audio a la nube.";
 "text.polish.off" = "Desactivado (literal)";
 "text.polish.basic" = "Básico (puntuación + mayúsculas)";
 "text.polish.fluent" = "Fluido (redacción más limpia)";
-"onboarding.model.default_included" = "Whisper Turbo incluido por defecto (~632 MB)";
+"onboarding.model.default_included" = "Speex Turbo incluido por defecto (~632 MB)";
 "onboarding.model.super_pro_note" = "Luego podrás instalar Super Pro (~1.5 GB) desde Configuración, manteniendo ambos modelos.";
 "menu.metrics.summary" = "TTFX: %d ms · Bloques: %d · Promedio: %d ms";
 "menu.permissions.open_guide" = "Pulsa para abrir guía paso a paso";
