@@ -25,7 +25,7 @@ targets:
       - path: Speex
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.andresilvagomez.whisper
+        PRODUCT_BUNDLE_IDENTIFIER: com.andresilvagomez.speex
         MARKETING_VERSION: "0.0.1"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: Speex/Resources/Info.plist

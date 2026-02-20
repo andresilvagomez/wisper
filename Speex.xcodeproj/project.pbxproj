@@ -604,7 +604,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.andresilvagomez.whisper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.andresilvagomez.speex;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
 			};
@@ -626,7 +626,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.andresilvagomez.whisper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.andresilvagomez.speex;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
 			};
