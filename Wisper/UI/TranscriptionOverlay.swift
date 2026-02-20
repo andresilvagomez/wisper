@@ -200,7 +200,7 @@ struct RecordingIndicatorContent: View {
 final class OverlayWindowController {
     private var window: FloatingPanel?
     private let positionStorage = OverlayPositionStorage()
-    private var dragInitialOrigin: NSPoint?
+    private var dragCursorOffset: CGSize?
 
     @MainActor
     func show(appState: AppState) {
@@ -275,7 +275,7 @@ final class OverlayWindowController {
 
     @MainActor
     func hide() {
-        dragInitialOrigin = nil
+        dragCursorOffset = nil
         window?.orderOut(nil)
         window = nil
     }
@@ -300,15 +300,21 @@ final class OverlayWindowController {
     @MainActor
     private func handleDragChanged(translation: CGSize) {
         guard let window else { return }
+        _ = translation
 
-        if dragInitialOrigin == nil {
-            dragInitialOrigin = window.frame.origin
+        let cursor = NSEvent.mouseLocation
+
+        if dragCursorOffset == nil {
+            dragCursorOffset = CGSize(
+                width: cursor.x - window.frame.origin.x,
+                height: cursor.y - window.frame.origin.y
+            )
         }
 
-        guard let initialOrigin = dragInitialOrigin else { return }
+        guard let cursorOffset = dragCursorOffset else { return }
         let desiredOrigin = NSPoint(
-            x: initialOrigin.x + translation.width,
-            y: initialOrigin.y - translation.height
+            x: cursor.x - cursorOffset.width,
+            y: cursor.y - cursorOffset.height
         )
 
         if let visibleFrame = (window.screen ?? NSScreen.main)?.visibleFrame {
@@ -326,7 +332,7 @@ final class OverlayWindowController {
     @MainActor
     private func handleDragEnded() {
         guard let window else { return }
-        dragInitialOrigin = nil
+        dragCursorOffset = nil
         positionStorage.save(window.frame.origin)
     }
 }
