@@ -253,7 +253,6 @@ final class AppState: ObservableObject {
         setupEngines()
         normalizeSelectedModelIfNeeded()
         applyBestDownloadedModelAsDefaultIfNeeded()
-        ensureModelWarmInBackground(reason: "app_init")
     }
 
     func setupEngines() {
@@ -380,7 +379,7 @@ final class AppState: ObservableObject {
             requestOnboardingPresentation()
         }
 
-        ensureModelWarmInBackground(reason: "permission_audit")
+        // Avoid aggressive auto-load on startup. Model warms on demand when user records.
     }
 
     func requestOnboardingPresentation() {
@@ -618,7 +617,8 @@ final class AppState: ObservableObject {
             await engine?.loadModel(
                 modelName: model,
                 language: lang,
-                onPhaseChange: phaseHandler
+                onPhaseChange: phaseHandler,
+                eagerWarmup: false
             ) ?? false
         }.value
 

@@ -55,7 +55,8 @@ final class TranscriptionEngine: @unchecked Sendable {
     func loadModel(
         modelName: String,
         language: String?,
-        onPhaseChange: @escaping @Sendable (ModelPhase) -> Void
+        onPhaseChange: @escaping @Sendable (ModelPhase) -> Void,
+        eagerWarmup: Bool = true
     ) async -> Bool {
         self.language = language
         self.hasPrimedDecoder = false
@@ -86,16 +87,24 @@ final class TranscriptionEngine: @unchecked Sendable {
             let config = WhisperKitConfig(
                 modelFolder: downloadedModelFolder.path,
                 verbose: true,
-                prewarm: true,
+                prewarm: eagerWarmup,
                 load: true,
                 download: false
             )
 
             print("[Speex] Download complete, calling WhisperKit init...")
-            whisperKit = try await WhisperKit(config)
+            whisperKit = try await withWhisperKitTimeout(seconds: 120) {
+                try await WhisperKit(config)
+            }
 
-            onPhaseChange(.loading(step: L10n.t("model.phase.warming_up")))
-            await primeDecoderIfNeeded()
+            if eagerWarmup {
+                onPhaseChange(.loading(step: L10n.t("model.phase.warming_up")))
+                await primeDecoderIfNeeded()
+            } else {
+                Task.detached(priority: .utility) { [weak self] in
+                    await self?.primeDecoderIfNeeded()
+                }
+            }
 
             print("[Speex] ====================================")
             print("[Speex] MODEL READY")
@@ -137,6 +146,30 @@ final class TranscriptionEngine: @unchecked Sendable {
             print("[Speex] ✅ Decoder warmup complete")
         } catch {
             print("[Speex] ⚠️ Decoder warmup failed (non-fatal): \(error)")
+        }
+    }
+
+    private func withWhisperKitTimeout(
+        seconds: Double,
+        operation: @escaping @Sendable () async throws -> WhisperKit
+    ) async throws -> WhisperKit {
+        try await withThrowingTaskGroup(of: WhisperKit.self) { group in
+            group.addTask {
+                try await operation()
+            }
+
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw NSError(
+                    domain: "Speex.TranscriptionEngine",
+                    code: 1002,
+                    userInfo: [NSLocalizedDescriptionKey: "Model loading timed out"]
+                )
+            }
+
+            let result = try await group.next()!
+            group.cancelAll()
+            return result
         }
     }
 
