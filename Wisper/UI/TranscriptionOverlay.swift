@@ -91,6 +91,8 @@ struct AudioWaveView: View {
 struct RecordingIndicatorContent: View {
     @EnvironmentObject var appState: AppState
     let onResetPosition: (() -> Void)?
+    let onDragChanged: ((CGSize) -> Void)?
+    let onDragEnded: (() -> Void)?
     @State private var pulse = false
 
     var body: some View {
@@ -114,6 +116,15 @@ struct RecordingIndicatorContent: View {
             .onTapGesture(count: 2) {
                 onResetPosition?()
             }
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        onDragChanged?(value.translation)
+                    }
+                    .onEnded { _ in
+                        onDragEnded?()
+                    }
+            )
 
             Circle()
                 .fill(Color.red)
@@ -190,6 +201,7 @@ final class OverlayWindowController {
     private var window: FloatingPanel?
     private let positionStorage = OverlayPositionStorage()
     private var windowMoveObserver: NSObjectProtocol?
+    private var dragInitialOrigin: NSPoint?
 
     @MainActor
     func show(appState: AppState) {
@@ -205,6 +217,16 @@ final class OverlayWindowController {
             onResetPosition: { [weak self] in
                 Task { @MainActor in
                     self?.resetToDefaultPosition()
+                }
+            },
+            onDragChanged: { [weak self] translation in
+                Task { @MainActor in
+                    self?.handleDragChanged(translation: translation)
+                }
+            },
+            onDragEnded: { [weak self] in
+                Task { @MainActor in
+                    self?.handleDragEnded()
                 }
             }
         )
@@ -231,8 +253,8 @@ final class OverlayWindowController {
         panel.level = .statusBar
         panel.hasShadow = false
         panel.contentView = hostingView
-        panel.isMovableByWindowBackground = true
-        panel.isMovable = true
+        panel.isMovableByWindowBackground = false
+        panel.isMovable = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.hidesOnDeactivate = false
 
@@ -272,6 +294,7 @@ final class OverlayWindowController {
             NotificationCenter.default.removeObserver(windowMoveObserver)
             self.windowMoveObserver = nil
         }
+        dragInitialOrigin = nil
         window?.orderOut(nil)
         window = nil
     }
@@ -291,5 +314,38 @@ final class OverlayWindowController {
         positionStorage.clear()
         window.setFrameOrigin(defaultOrigin)
         positionStorage.save(defaultOrigin)
+    }
+
+    @MainActor
+    private func handleDragChanged(translation: CGSize) {
+        guard let window else { return }
+
+        if dragInitialOrigin == nil {
+            dragInitialOrigin = window.frame.origin
+        }
+
+        guard let initialOrigin = dragInitialOrigin else { return }
+        let desiredOrigin = NSPoint(
+            x: initialOrigin.x + translation.width,
+            y: initialOrigin.y - translation.height
+        )
+
+        if let visibleFrame = (window.screen ?? NSScreen.main)?.visibleFrame {
+            let clampedOrigin = OverlayPositioning.clampedOrigin(
+                desired: desiredOrigin,
+                panelSize: window.frame.size,
+                visibleFrame: visibleFrame
+            )
+            window.setFrameOrigin(clampedOrigin)
+        } else {
+            window.setFrameOrigin(desiredOrigin)
+        }
+    }
+
+    @MainActor
+    private func handleDragEnded() {
+        guard let window else { return }
+        dragInitialOrigin = nil
+        positionStorage.save(window.frame.origin)
     }
 }

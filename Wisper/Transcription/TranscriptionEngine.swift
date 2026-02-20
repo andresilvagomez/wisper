@@ -32,6 +32,10 @@ final class TranscriptionEngine: @unchecked Sendable {
         "thanks for watching",
         "subscribe",
     ]
+    static let leadingArtifactPrefixes: [String] = [
+        "thank you",
+        "thanks",
+    ]
 
     private var chunkSize: Int {
         Int(chunkDurationSeconds * Double(sampleRate))
@@ -196,11 +200,19 @@ final class TranscriptionEngine: @unchecked Sendable {
                     if let text = results.first?.text.trimmingCharacters(in: .whitespacesAndNewlines),
                        !text.isEmpty
                     {
-                        if TranscriptionEngine.isHallucination(text) {
-                            print("[Wisper] Filtered hallucination: \(text)")
+                        let cleanedText = TranscriptionEngine.sanitizedLeadingArtifacts(from: text)
+                        guard !cleanedText.isEmpty else {
+                            print("[Wisper] Filtered leading artifact chunk: \(text)")
+                            self.isProcessing = false
+                            waitForCompletion.signal()
+                            return
+                        }
+
+                        if TranscriptionEngine.isHallucination(cleanedText) {
+                            print("[Wisper] Filtered hallucination: \(cleanedText)")
                         } else {
-                            print("[Wisper] Transcribed: \(text)")
-                            self.onFinalResult(text)
+                            print("[Wisper] Transcribed: \(cleanedText)")
+                            self.onFinalResult(cleanedText)
                         }
                     }
                 } catch {
@@ -260,11 +272,19 @@ final class TranscriptionEngine: @unchecked Sendable {
                     if let text = results.first?.text.trimmingCharacters(in: .whitespacesAndNewlines),
                        !text.isEmpty
                     {
-                        if TranscriptionEngine.isHallucination(text) {
-                            print("[Wisper] Filtered hallucination (final): \(text)")
+                        let cleanedText = TranscriptionEngine.sanitizedLeadingArtifacts(from: text)
+                        guard !cleanedText.isEmpty else {
+                            print("[Wisper] Filtered leading artifact final chunk: \(text)")
+                            completion?()
+                            waitForCompletion.signal()
+                            return
+                        }
+
+                        if TranscriptionEngine.isHallucination(cleanedText) {
+                            print("[Wisper] Filtered hallucination (final): \(cleanedText)")
                         } else {
-                            print("[Wisper] Final chunk: \(text)")
-                            self.onFinalResult(text)
+                            print("[Wisper] Final chunk: \(cleanedText)")
+                            self.onFinalResult(cleanedText)
                         }
                     }
                 } catch {
@@ -310,6 +330,31 @@ final class TranscriptionEngine: @unchecked Sendable {
         if stripped.count == lower.count { return true }
 
         return false
+    }
+
+    static func sanitizedLeadingArtifacts(from text: String) -> String {
+        var candidate = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty else { return "" }
+
+        for prefix in leadingArtifactPrefixes {
+            let lower = candidate.lowercased()
+            guard lower.hasPrefix(prefix) else { continue }
+
+            let remainder = candidate.dropFirst(prefix.count)
+            let cleanedRemainder = remainder.drop {
+                $0.isWhitespace || ",.!?:;…-–—".contains($0)
+            }
+
+            // If it's only the artifact phrase, drop it completely.
+            if cleanedRemainder.isEmpty {
+                return ""
+            }
+
+            candidate = String(cleanedRemainder)
+            break
+        }
+
+        return candidate.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     static func localModelFolder(for modelName: String) -> URL {

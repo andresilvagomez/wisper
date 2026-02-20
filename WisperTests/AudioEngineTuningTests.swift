@@ -20,5 +20,24 @@ struct AudioEngineTuningTests {
         #expect(output[1] == 0)
         #expect(output[2] != 0)
     }
-}
 
+    @Test("Friendly input name replaces default aggregate with human-readable label")
+    func friendlyInputNameForAggregateDefault() {
+        let name = AudioEngine.friendlyInputDeviceName(
+            rawName: "Default Device Aggregate",
+            uid: "uid-1",
+            defaultUID: "uid-1"
+        )
+        #expect(name == "Micrófono del sistema (por defecto)")
+    }
+
+    @Test("Friendly input name appends default marker for regular devices")
+    func friendlyInputNameMarksDefaultDevice() {
+        let name = AudioEngine.friendlyInputDeviceName(
+            rawName: "MacBook Pro Microphone",
+            uid: "uid-1",
+            defaultUID: "uid-1"
+        )
+        #expect(name == "MacBook Pro Microphone (por defecto)")
+    }
+}

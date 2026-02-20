@@ -50,6 +50,20 @@ struct HallucinationFilterTests {
         #expect(TranscriptionEngine.isHallucination("subscribe"))
     }
 
+    @Test("Removes leading thank-you artifact while preserving real content")
+    func stripsLeadingThankYouArtifact() {
+        let cleaned = TranscriptionEngine.sanitizedLeadingArtifacts(
+            from: "Thank you... necesito ayuda con el reporte"
+        )
+        #expect(cleaned == "necesito ayuda con el reporte")
+    }
+
+    @Test("Drops isolated thank-you artifact")
+    func dropsStandaloneThankYouArtifact() {
+        let cleaned = TranscriptionEngine.sanitizedLeadingArtifacts(from: "thank you")
+        #expect(cleaned.isEmpty)
+    }
+
     @Test("Filters arbitrary bracketed text")
     func filtersArbitraryBrackets() {
         #expect(TranscriptionEngine.isHallucination("[anything here]"))

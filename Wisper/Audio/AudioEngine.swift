@@ -158,15 +158,54 @@ final class AudioEngine: @unchecked Sendable {
     // MARK: - Input Devices
 
     static func availableInputDevices() -> [AudioInputDevice] {
-        allAudioDeviceIDs()
+        let defaultUID = defaultInputDeviceUID()
+
+        return allAudioDeviceIDs()
             .filter { hasInputStreams(deviceID: $0) }
             .compactMap { deviceID in
                 guard let uid = uidForAudioDeviceID(deviceID),
                       let name = nameForAudioDeviceID(deviceID)
                 else { return nil }
-                return AudioInputDevice(id: uid, name: name)
+                let friendlyName = friendlyInputDeviceName(
+                    rawName: name,
+                    uid: uid,
+                    defaultUID: defaultUID
+                )
+                return AudioInputDevice(id: uid, name: friendlyName)
             }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            .sorted { (lhs: AudioInputDevice, rhs: AudioInputDevice) in
+                let lhsIsDefault = lhs.id == defaultUID
+                let rhsIsDefault = rhs.id == defaultUID
+
+                if lhsIsDefault != rhsIsDefault {
+                    return lhsIsDefault
+                }
+
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+    }
+
+    static func friendlyInputDeviceName(
+        rawName: String,
+        uid: String,
+        defaultUID: String?
+    ) -> String {
+        let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = trimmed.lowercased()
+
+        let looksLikeSystemAggregate =
+            lower.contains("default") && lower.contains("aggregate")
+
+        let baseName = looksLikeSystemAggregate ? "Micrófono del sistema" : trimmed
+        let isDefaultDevice = uid == defaultUID
+
+        guard isDefaultDevice else { return baseName }
+
+        if baseName.lowercased().contains("por defecto") {
+            return baseName
+        }
+
+        return "\(baseName) (por defecto)"
     }
 
     static func defaultInputDeviceUID() -> String? {
