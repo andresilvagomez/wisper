@@ -20,11 +20,13 @@ struct WisperApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Settings {
+        Window(String(localized: "menu.settings"), id: "settings") {
             SettingsView()
                 .environmentObject(appState)
                 .environment(\.locale, Locale(identifier: appState.resolvedInterfaceLanguageCode))
         }
+        .defaultSize(width: 520, height: 380)
+        .windowResizability(.contentMinSize)
 
         Window(String(localized: "window.onboarding.title"), id: "onboarding") {
             OnboardingView()

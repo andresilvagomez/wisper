@@ -24,7 +24,7 @@ struct SettingsView: View {
                     Label("About", systemImage: "info.circle")
                 }
         }
-        .frame(width: 450, height: 320)
+        .frame(minWidth: 520, minHeight: 380)
         .onAppear {
             NSApp.activate(ignoringOtherApps: true)
             DispatchQueue.main.async {

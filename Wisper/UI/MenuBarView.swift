@@ -266,7 +266,10 @@ struct MenuBarView: View {
                 Divider()
             }
 
-            SettingsLink {
+            Button(action: {
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: "settings")
+            }) {
                 Label(L10n.t("menu.settings"), systemImage: "gear")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
