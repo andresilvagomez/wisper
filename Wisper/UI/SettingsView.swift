@@ -219,6 +219,11 @@ struct ModelSettingsTab: View {
 // MARK: - About
 
 struct AboutTab: View {
+    private var appVersionText: String {
+        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.1"
+        return "v\(short)"
+    }
+
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "waveform.circle.fill")
@@ -232,7 +237,7 @@ struct AboutTab: View {
             Text("Speech to text, on device.")
                 .foregroundColor(.secondary)
 
-            Text("v1.0.0")
+            Text(appVersionText)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
 
