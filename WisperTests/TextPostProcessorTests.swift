@@ -10,6 +10,12 @@ struct TextPostProcessorTests {
         #expect(result == "hola mundo")
     }
 
+    @Test("Off mode removes spaces before punctuation marks")
+    func offModePunctuationSpacing() {
+        let result = TextPostProcessor.processFinal("hola coma mundo punto", mode: .off)
+        #expect(result == "hola, mundo.")
+    }
+
     @Test("Basic mode capitalizes and adds terminal punctuation")
     func basicMode() {
         let result = TextPostProcessor.processFinal("hola mundo", mode: .basic)
@@ -26,6 +32,12 @@ struct TextPostProcessorTests {
     func dictatedPunctuation() {
         let result = TextPostProcessor.processFinal("hola coma mundo signo de pregunta", mode: .fluent)
         #expect(result == "Hola, mundo?")
+    }
+
+    @Test("Chunk processing normalizes punctuation spacing")
+    func chunkPunctuationSpacing() {
+        let result = TextPostProcessor.processChunk("hola coma mundo", mode: .off, isFirstChunk: true)
+        #expect(result == "hola, mundo")
     }
 
     @Test("Fluent mode maps dictated punctuation in multiple languages")

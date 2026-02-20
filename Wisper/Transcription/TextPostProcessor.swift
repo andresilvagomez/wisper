@@ -44,6 +44,7 @@ enum TextPostProcessor {
         var value = normalizeWhitespacePreservingLineBreaks(in: text)
         value = applySpokenFormattingCommands(in: value)
         value = applyDictatedPunctuation(in: value)
+        value = normalizePunctuationSpacing(in: value)
 
         switch mode {
         case .off:
@@ -104,6 +105,7 @@ enum TextPostProcessor {
         var value = normalizeWhitespacePreservingLineBreaks(in: text)
         value = applySpokenFormattingCommands(in: value)
         value = applyDictatedPunctuation(in: value)
+        value = normalizePunctuationSpacing(in: value)
         guard !value.isEmpty else { return value }
 
         switch mode {
@@ -111,7 +113,6 @@ enum TextPostProcessor {
             return value
         case .basic:
             value = capitalizeSentenceStarts(in: value)
-            value = normalizePunctuationSpacing(in: value)
             if let numbered = formatNumberedListIfDetected(in: value) {
                 return numbered
             }
@@ -121,7 +122,6 @@ enum TextPostProcessor {
             value = removeFillerWords(in: value)
             value = normalizeWhitespacePreservingLineBreaks(in: value)
             value = capitalizeSentenceStarts(in: value)
-            value = normalizePunctuationSpacing(in: value)
             if let numbered = formatNumberedListIfDetected(in: value) {
                 return numbered
             }
