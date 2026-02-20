@@ -87,4 +87,38 @@ struct TranscriptionCoordinatorTests {
 
         #expect(text == "Hola mundo.")
     }
+
+    @Test("No inserta espacio antes de puntuación entre bloques")
+    func noSpaceBeforePunctuationAcrossChunks() {
+        let coordinator = TranscriptionCoordinator()
+        let start = Date(timeIntervalSince1970: 9_000)
+
+        let first = coordinator.consumeFinal(
+            text: "a la hora de crear por tarjeta",
+            mode: .streaming,
+            confirmedText: "",
+            recordingStartedAt: start,
+            chunkStartedAt: start,
+            now: start.addingTimeInterval(0.03)
+        )
+
+        let second = coordinator.consumeFinal(
+            text: "punto via API",
+            mode: .streaming,
+            confirmedText: first.confirmedText,
+            recordingStartedAt: start,
+            chunkStartedAt: start.addingTimeInterval(0.2),
+            now: start.addingTimeInterval(0.23)
+        )
+
+        #expect(second.confirmedText.contains(" . ") == false)
+        #expect(second.confirmedText.contains(". via") == true)
+
+        switch second.action {
+        case let .typeText(text, _):
+            #expect(text == ". via API")
+        default:
+            Issue.record("Expected .typeText action for punctuation chunk")
+        }
+    }
 }

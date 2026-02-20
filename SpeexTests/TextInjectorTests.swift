@@ -24,9 +24,9 @@ struct TextInjectorTests {
         injector.typeText("\n\t\n")
     }
 
-    @Test("normalizedInjectionText trims and appends trailing space")
+    @Test("normalizedInjectionText trims without forcing trailing space")
     func normalizedInjectionText() {
-        #expect(TextInjector.normalizedInjectionText(" hola ") == "hola ")
+        #expect(TextInjector.normalizedInjectionText(" hola ") == "hola")
         #expect(TextInjector.normalizedInjectionText("") == nil)
         #expect(TextInjector.normalizedInjectionText("   ") == nil)
     }

@@ -124,7 +124,14 @@ final class TranscriptionCoordinator {
         let processingMs = Int(now.timeIntervalSince(chunkStartedAt) * 1000)
 
         let action: TranscriptionInjectionAction = if mode == .streaming {
-            .typeText(text: combined, clipboardAfterInjection: updatedConfirmedText)
+            .typeText(
+                text: streamingInjectionText(
+                    existingConfirmedText: confirmedText,
+                    updatedConfirmedText: updatedConfirmedText,
+                    fallbackChunk: combined
+                ),
+                clipboardAfterInjection: updatedConfirmedText
+            )
         } else {
             .copyToClipboard(updatedConfirmedText)
         }
@@ -169,6 +176,28 @@ final class TranscriptionCoordinator {
             return chunkTrimmed
         }
 
+        if let first = chunkTrimmed.first, ",.;:!?".contains(first) {
+            return cleanedExisting + chunkTrimmed
+        }
+
         return cleanedExisting + " " + chunkTrimmed
+    }
+
+    private func streamingInjectionText(
+        existingConfirmedText: String,
+        updatedConfirmedText: String,
+        fallbackChunk: String
+    ) -> String {
+        let existing = existingConfirmedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if existing.isEmpty {
+            return updatedConfirmedText
+        }
+
+        guard updatedConfirmedText.hasPrefix(existing) else {
+            return fallbackChunk
+        }
+
+        let delta = String(updatedConfirmedText.dropFirst(existing.count))
+        return delta.isEmpty ? fallbackChunk : delta
     }
 }

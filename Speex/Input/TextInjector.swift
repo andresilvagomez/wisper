@@ -121,7 +121,7 @@ final class TextInjector: @unchecked Sendable {
         guard !text.isEmpty else { return nil }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        return trimmed + " "
+        return trimmed
     }
 
     private func injectTextViaAccessibility(_ text: String) -> Bool {
