@@ -86,4 +86,25 @@ struct TextPostProcessorTests {
         )
         #expect(replaced == "Vamos hoy. Llegamos temprano.")
     }
+
+    @Test("Editing command detects delete last sentence")
+    func detectDeleteLastSentenceCommand() {
+        let cmd = TextPostProcessor.editingCommand(in: "borra última frase")
+        #expect(cmd == .deleteLastSentence)
+    }
+
+    @Test("Editing command detects undo and redo")
+    func detectUndoRedoCommands() {
+        let undo = TextPostProcessor.editingCommand(in: "deshacer")
+        let redo = TextPostProcessor.editingCommand(in: "rehacer")
+        #expect(undo == .undo)
+        #expect(redo == .redo)
+    }
+
+    @Test("Removing last sentence leaves previous sentence")
+    func removeLastSentence() {
+        let original = "Primera frase. Segunda frase."
+        let updated = TextPostProcessor.removingLastSentence(from: original)
+        #expect(updated == "Primera frase.")
+    }
 }

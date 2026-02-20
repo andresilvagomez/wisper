@@ -105,6 +105,8 @@ final class AppState: ObservableObject {
     private var lastChunkProcessedAt: Date?
     private var recordingStartedAt: Date?
     private var modelWarmupRetryTask: Task<Void, Never>?
+    private var undoStack: [String] = []
+    private var redoStack: [String] = []
 
     // MARK: - Engines
 
@@ -274,8 +276,18 @@ final class AppState: ObservableObject {
                     let chunkStartedAt = Date()
 
                     if self.transcriptionMode == .onRelease,
+                       let editCommand = TextPostProcessor.editingCommand(in: text)
+                    {
+                        self.applyEditingCommand(editCommand)
+                        self.partialText = ""
+                        self.lastChunkProcessedAt = .now
+                        return
+                    }
+
+                    if self.transcriptionMode == .onRelease,
                        let correction = TextPostProcessor.correctionReplacementIfCommand(text)
                     {
+                        self.saveStateForUndo()
                         self.confirmedText = TextPostProcessor.replacingLastSentence(
                             in: self.confirmedText,
                             with: correction
@@ -307,6 +319,7 @@ final class AppState: ObservableObject {
                     guard !combined.isEmpty else { return }
 
                     print("[Wisper] Final result: \(combined)")
+                    self.saveStateForUndo()
                     self.confirmedText = self.appendChunk(
                         combined,
                         to: self.confirmedText
@@ -546,6 +559,8 @@ final class AppState: ObservableObject {
         lastChunkProcessedAt = nil
         recordingStartedAt = .now
         runtimeMetrics.reset()
+        undoStack.removeAll()
+        redoStack.removeAll()
 
         let engine = transcriptionEngine
         let captureStarted = audioEngine?.startCapture(
@@ -789,5 +804,34 @@ final class AppState: ObservableObject {
         }
 
         return cleanedExisting + " " + chunkTrimmed
+    }
+
+    private func applyEditingCommand(_ command: TextPostProcessor.EditingCommand) {
+        switch command {
+        case .deleteLastSentence:
+            let updated = TextPostProcessor.removingLastSentence(from: confirmedText)
+            guard updated != confirmedText else { return }
+            saveStateForUndo()
+            confirmedText = updated
+            textInjector?.copyAccumulatedTextToClipboard(confirmedText)
+        case .undo:
+            guard let previous = undoStack.popLast() else { return }
+            redoStack.append(confirmedText)
+            confirmedText = previous
+            textInjector?.copyAccumulatedTextToClipboard(confirmedText)
+        case .redo:
+            guard let next = redoStack.popLast() else { return }
+            undoStack.append(confirmedText)
+            confirmedText = next
+            textInjector?.copyAccumulatedTextToClipboard(confirmedText)
+        }
+    }
+
+    private func saveStateForUndo() {
+        undoStack.append(confirmedText)
+        if undoStack.count > 30 {
+            undoStack.removeFirst(undoStack.count - 30)
+        }
+        redoStack.removeAll()
     }
 }

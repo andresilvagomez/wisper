@@ -18,6 +18,12 @@ enum TextPolishMode: String, CaseIterable {
 }
 
 enum TextPostProcessor {
+    enum EditingCommand {
+        case deleteLastSentence
+        case undo
+        case redo
+    }
+
     static func separatorForPause(
         since lastChunkDate: Date?,
         previousText: String,
@@ -55,6 +61,43 @@ enum TextPostProcessor {
             }
             return value
         }
+    }
+
+    static func editingCommand(in text: String) -> EditingCommand? {
+        let normalized = normalizeWhitespace(in: text).lowercased()
+        guard !normalized.isEmpty else { return nil }
+
+        if matchesAny(normalized, patterns: [
+            #"^(borra|elimina|quita)\s+(la\s+)?[uú]ltima\s+frase$"#,
+            #"^delete\s+(the\s+)?last\s+sentence$"#,
+            #"^apaga\s+(a\s+)?[uú]ltima\s+frase$"#,
+            #"^supprime\s+(la\s+)?derni[eè]re\s+phrase$"#,
+            #"^l[öo]sche\s+(den\s+)?letzten\s+satz$"#,
+        ]) {
+            return .deleteLastSentence
+        }
+
+        if matchesAny(normalized, patterns: [
+            #"^deshacer$"#,
+            #"^undo$"#,
+            #"^desfazer$"#,
+            #"^annuler$"#,
+            #"^r[üu]ckg[aä]ngig$"#,
+        ]) {
+            return .undo
+        }
+
+        if matchesAny(normalized, patterns: [
+            #"^(rehacer|repite)$"#,
+            #"^(redo|repeat)$"#,
+            #"^(refazer|repetir)$"#,
+            #"^(r[eé]tablir|r[eé]p[eé]ter)$"#,
+            #"^(wiederholen|wiederherstellen)$"#,
+        ]) {
+            return .redo
+        }
+
+        return nil
     }
 
     static func processFinal(_ text: String, mode: TextPolishMode) -> String {
@@ -135,6 +178,20 @@ enum TextPostProcessor {
         return replacementTrimmed
     }
 
+    static func removingLastSentence(from text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+
+        let punctuation = ".!?"
+        let punctuationPositions = trimmed.indices.filter { punctuation.contains(trimmed[$0]) }
+
+        guard !punctuationPositions.isEmpty else { return "" }
+        guard punctuationPositions.count >= 2 else { return "" }
+
+        let previousSentenceEnd = punctuationPositions[punctuationPositions.count - 2]
+        return String(trimmed[...previousSentenceEnd]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private static func normalizeWhitespace(in text: String) -> String {
         let squashed = text.replacingOccurrences(
             of: #"\s+"#,
@@ -142,6 +199,19 @@ enum TextPostProcessor {
             options: .regularExpression
         )
         return squashed.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func matchesAny(_ value: String, patterns: [String]) -> Bool {
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+                continue
+            }
+            let range = NSRange(location: 0, length: (value as NSString).length)
+            if regex.firstMatch(in: value, options: [], range: range) != nil {
+                return true
+            }
+        }
+        return false
     }
 
     private static func normalizeWhitespacePreservingLineBreaks(in text: String) -> String {
