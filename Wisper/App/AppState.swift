@@ -64,6 +64,7 @@ final class AppState: ObservableObject {
     @AppStorage("selectedInputDeviceUID") var selectedInputDeviceUID = ""
     @Published private(set) var onboardingPresentationToken = UUID()
     private var hasRunInitialPermissionAudit = false
+    private var queuedRecordingStartAfterModelReady = false
 
     // MARK: - Engines
 
@@ -211,7 +212,7 @@ final class AppState: ObservableObject {
     init() {
         setupEngines()
         applyBestDownloadedModelAsDefaultIfNeeded()
-        Task { [weak self] in
+        Task(priority: .utility) { [weak self] in
             await self?.loadModel()
         }
     }
@@ -417,8 +418,19 @@ final class AppState: ObservableObject {
     }
 
     func startRecording() {
-        guard modelPhase.isReady, !isRecording else {
-            print("[Wisper] startRecording BLOCKED — modelReady=\(modelPhase.isReady) isRecording=\(isRecording)")
+        guard !isRecording else {
+            print("[Wisper] startRecording BLOCKED — already recording")
+            return
+        }
+
+        guard modelPhase.isReady else {
+            queuedRecordingStartAfterModelReady = true
+            if !modelPhase.isActive {
+                Task(priority: .utility) { [weak self] in
+                    await self?.loadModel()
+                }
+            }
+            print("[Wisper] startRecording deferred — model loading in background")
             return
         }
 
@@ -426,6 +438,7 @@ final class AppState: ObservableObject {
         refreshPermissionState()
         guard !needsMicrophone else {
             print("[Wisper] ⚠️ startRecording BLOCKED — no microphone permission")
+            queuedRecordingStartAfterModelReady = false
             requestOnboardingPresentation()
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -433,6 +446,7 @@ final class AppState: ObservableObject {
 
         guard !needsAccessibility else {
             print("[Wisper] ⚠️ startRecording BLOCKED — no accessibility permission")
+            queuedRecordingStartAfterModelReady = false
             requestOnboardingPresentation()
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -467,6 +481,7 @@ final class AppState: ObservableObject {
         }
 
         isRecording = true
+        queuedRecordingStartAfterModelReady = false
         overlayController.show(appState: self)
         print("[Wisper] ▶ Recording started (mode: \(recordingMode.rawValue), transcription: \(transcriptionMode.rawValue))")
     }
@@ -526,11 +541,18 @@ final class AppState: ObservableObject {
             }
         }
 
-        _ = await engine?.loadModel(
-            modelName: model,
-            language: lang,
-            onPhaseChange: phaseHandler
-        ) ?? false
+        let loaded = await Task.detached(priority: .utility) {
+            await engine?.loadModel(
+                modelName: model,
+                language: lang,
+                onPhaseChange: phaseHandler
+            ) ?? false
+        }.value
+
+        if loaded, queuedRecordingStartAfterModelReady, !isRecording {
+            queuedRecordingStartAfterModelReady = false
+            startRecording()
+        }
     }
 
     func reloadModel() {
