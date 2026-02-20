@@ -233,12 +233,19 @@ final class AppState: ObservableObject {
             onFinalResult: { [weak self] text in
                 Task { @MainActor in
                     guard let self else { return }
-                    print("[Wisper] Final result: \(text)")
-                    self.confirmedText += text + " "
+                    let polished = TextPostProcessor.processChunk(
+                        text,
+                        mode: .fluent,
+                        isFirstChunk: self.confirmedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    )
+                    guard !polished.isEmpty else { return }
+
+                    print("[Wisper] Final result: \(polished)")
+                    self.confirmedText += polished + " "
                     self.partialText = ""
                     if self.transcriptionMode == .streaming {
                         self.textInjector?.typeText(
-                            text,
+                            polished,
                             clipboardAfterInjection: self.confirmedText
                         )
                     } else {
@@ -508,9 +515,16 @@ final class AppState: ObservableObject {
                     let partial = self.partialText.trimmingCharacters(in: .whitespacesAndNewlines)
                     let textToInject = !confirmed.isEmpty ? confirmed : partial
                     guard !textToInject.isEmpty else { return }
-                    self.textInjector?.typeText(
+
+                    let polished = TextPostProcessor.processFinal(
                         textToInject,
-                        clipboardAfterInjection: textToInject
+                        mode: .fluent
+                    )
+                    guard !polished.isEmpty else { return }
+
+                    self.textInjector?.typeText(
+                        polished,
+                        clipboardAfterInjection: polished
                     )
                 }
             }
