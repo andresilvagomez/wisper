@@ -46,6 +46,7 @@ struct MenuBarView: View {
         .frame(width: 280)
         .onAppear {
             appState.refreshInputDevices()
+            appState.ensureModelWarmInBackground(reason: "menu_opened")
         }
     }
 
@@ -124,7 +125,7 @@ struct MenuBarView: View {
     private var transcriptionPreview: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text("Transcription")
+                Text(L10n.t("Transcription"))
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -138,7 +139,7 @@ struct MenuBarView: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundColor(.secondary)
-                    .help("Copy transcription")
+                    .help(L10n.t("Copy transcription"))
                 }
             }
 
@@ -151,11 +152,29 @@ struct MenuBarView: View {
                     .foregroundColor(.secondary)
                     .italic()
             }
+
+            if appState.runtimeMetrics.chunkCount > 0 {
+                Text(runtimeMetricsSummary)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
         }
         .font(.system(.body, design: .rounded))
         .lineLimit(5)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
+    }
+
+    private var runtimeMetricsSummary: String {
+        let metrics = appState.runtimeMetrics
+        let ttfx = metrics.firstTextLatencyMs ?? 0
+        let avg = metrics.averageChunkProcessingMs ?? 0
+        return L10n.f(
+            "menu.metrics.summary",
+            ttfx,
+            metrics.chunkCount,
+            avg
+        )
     }
 
     // MARK: - Language Selector
@@ -187,10 +206,10 @@ struct MenuBarView: View {
                     .foregroundColor(.orange)
                     .font(.caption)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Falta Accesibilidad")
+                    Text(L10n.t("Falta Accesibilidad"))
                         .font(.caption)
                         .fontWeight(.medium)
-                    Text("Pulsa para abrir guía paso a paso")
+                    Text(L10n.t("menu.permissions.open_guide"))
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -213,10 +232,10 @@ struct MenuBarView: View {
                     .foregroundColor(.red)
                     .font(.caption)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Falta Micrófono")
+                    Text(L10n.t("Falta Micrófono"))
                         .font(.caption)
                         .fontWeight(.medium)
-                    Text("Pulsa para abrir guía paso a paso")
+                    Text(L10n.t("menu.permissions.open_guide"))
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }

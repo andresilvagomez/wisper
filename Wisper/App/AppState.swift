@@ -32,12 +32,49 @@ enum RecordingMode: String, CaseIterable {
 
 @MainActor
 final class AppState: ObservableObject {
+    struct RuntimeMetrics {
+        var firstTextLatencyMs: Int?
+        var lastChunkProcessingMs: Int?
+        var averageChunkProcessingMs: Int?
+        var chunkCount: Int = 0
+        var totalCharacters: Int = 0
+
+        mutating func reset() {
+            firstTextLatencyMs = nil
+            lastChunkProcessingMs = nil
+            averageChunkProcessingMs = nil
+            chunkCount = 0
+            totalCharacters = 0
+        }
+
+        mutating func registerChunk(
+            text: String,
+            processingMs: Int,
+            sessionStartedAt: Date?
+        ) {
+            chunkCount += 1
+            totalCharacters += text.count
+            lastChunkProcessingMs = processingMs
+
+            if let sessionStartedAt, firstTextLatencyMs == nil {
+                firstTextLatencyMs = Int(Date().timeIntervalSince(sessionStartedAt) * 1000)
+            }
+
+            if let currentAverage = averageChunkProcessingMs {
+                averageChunkProcessingMs = ((currentAverage * (chunkCount - 1)) + processingMs) / chunkCount
+            } else {
+                averageChunkProcessingMs = processingMs
+            }
+        }
+    }
+
     // MARK: - Recording State
 
     @Published var isRecording = false
     @Published var partialText = ""
     @Published var confirmedText = ""
     @Published var audioLevel: Float = 0
+    @Published var runtimeMetrics = RuntimeMetrics()
     @Published var needsAccessibility = false
     @Published var needsMicrophone = false
     @Published var microphonePermissionStatus: AVAuthorizationStatus = .notDetermined
@@ -65,6 +102,9 @@ final class AppState: ObservableObject {
     @Published private(set) var onboardingPresentationToken = UUID()
     private var hasRunInitialPermissionAudit = false
     private var queuedRecordingStartAfterModelReady = false
+    private var lastChunkProcessedAt: Date?
+    private var recordingStartedAt: Date?
+    private var modelWarmupRetryTask: Task<Void, Never>?
 
     // MARK: - Engines
 
@@ -212,9 +252,7 @@ final class AppState: ObservableObject {
         setupEngines()
         normalizeSelectedModelIfNeeded()
         applyBestDownloadedModelAsDefaultIfNeeded()
-        Task(priority: .utility) { [weak self] in
-            await self?.loadModel()
-        }
+        ensureModelWarmInBackground(reason: "app_init")
     }
 
     func setupEngines() {
@@ -233,6 +271,31 @@ final class AppState: ObservableObject {
             onFinalResult: { [weak self] text in
                 Task { @MainActor in
                     guard let self else { return }
+                    let chunkStartedAt = Date()
+
+                    if self.transcriptionMode == .onRelease,
+                       let correction = TextPostProcessor.correctionReplacementIfCommand(text)
+                    {
+                        self.confirmedText = TextPostProcessor.replacingLastSentence(
+                            in: self.confirmedText,
+                            with: correction
+                        )
+                        self.partialText = ""
+                        self.lastChunkProcessedAt = .now
+                        let processingMs = Int(Date().timeIntervalSince(chunkStartedAt) * 1000)
+                        self.runtimeMetrics.registerChunk(
+                            text: correction,
+                            processingMs: processingMs,
+                            sessionStartedAt: self.recordingStartedAt
+                        )
+                        return
+                    }
+
+                    let separator = TextPostProcessor.separatorForPause(
+                        since: self.lastChunkProcessedAt,
+                        previousText: self.confirmedText
+                    )
+
                     let polished = TextPostProcessor.processChunk(
                         text,
                         mode: .fluent,
@@ -240,12 +303,25 @@ final class AppState: ObservableObject {
                     )
                     guard !polished.isEmpty else { return }
 
-                    print("[Wisper] Final result: \(polished)")
-                    self.confirmedText += polished + " "
+                    let combined = (separator + polished).trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !combined.isEmpty else { return }
+
+                    print("[Wisper] Final result: \(combined)")
+                    self.confirmedText = self.appendChunk(
+                        combined,
+                        to: self.confirmedText
+                    )
                     self.partialText = ""
+                    self.lastChunkProcessedAt = .now
+                    let processingMs = Int(Date().timeIntervalSince(chunkStartedAt) * 1000)
+                    self.runtimeMetrics.registerChunk(
+                        text: combined,
+                        processingMs: processingMs,
+                        sessionStartedAt: self.recordingStartedAt
+                    )
                     if self.transcriptionMode == .streaming {
                         self.textInjector?.typeText(
-                            polished,
+                            combined,
                             clipboardAfterInjection: self.confirmedText
                         )
                     } else {
@@ -324,6 +400,8 @@ final class AppState: ObservableObject {
         if needsAccessibility || needsMicrophone {
             requestOnboardingPresentation()
         }
+
+        ensureModelWarmInBackground(reason: "permission_audit")
     }
 
     func requestOnboardingPresentation() {
@@ -465,6 +543,9 @@ final class AppState: ObservableObject {
         confirmedText = ""
         partialText = ""
         audioLevel = 0
+        lastChunkProcessedAt = nil
+        recordingStartedAt = .now
+        runtimeMetrics.reset()
 
         let engine = transcriptionEngine
         let captureStarted = audioEngine?.startCapture(
@@ -497,6 +578,8 @@ final class AppState: ObservableObject {
         guard isRecording else { return }
         isRecording = false
         audioLevel = 0
+        lastChunkProcessedAt = nil
+        recordingStartedAt = nil
         audioEngine?.stopCapture()
         overlayController.hide()
         print("[Wisper] ⏹ Recording stopped (confirmed: \(confirmedText.count) chars)")
@@ -563,10 +646,18 @@ final class AppState: ObservableObject {
             ) ?? false
         }.value
 
-        if loaded, queuedRecordingStartAfterModelReady, !isRecording {
-            queuedRecordingStartAfterModelReady = false
-            startRecording()
+        if loaded {
+            modelWarmupRetryTask?.cancel()
+            modelWarmupRetryTask = nil
+
+            if queuedRecordingStartAfterModelReady, !isRecording {
+                queuedRecordingStartAfterModelReady = false
+                startRecording()
+            }
+            return
         }
+
+        scheduleWarmupRetryIfNeeded()
     }
 
     func reloadModel() {
@@ -654,5 +745,49 @@ final class AppState: ObservableObject {
         default:
             return code
         }
+    }
+
+    func ensureModelWarmInBackground(reason _: String) {
+        guard !isRecording else { return }
+        guard !modelPhase.isActive else { return }
+        guard !modelPhase.isReady else { return }
+
+        Task(priority: .userInitiated) { [weak self] in
+            await self?.loadModel()
+        }
+    }
+
+    private func scheduleWarmupRetryIfNeeded() {
+        guard !isRecording else { return }
+        guard modelWarmupRetryTask == nil else { return }
+
+        modelWarmupRetryTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(3))
+            await MainActor.run {
+                guard let self else { return }
+                self.modelWarmupRetryTask = nil
+                self.ensureModelWarmInBackground(reason: "retry_after_error")
+            }
+        }
+    }
+
+    private func appendChunk(_ chunk: String, to existing: String) -> String {
+        let chunkTrimmed = chunk.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !chunkTrimmed.isEmpty else { return existing }
+
+        if existing.isEmpty {
+            return chunkTrimmed
+        }
+
+        if chunk.contains("\n") {
+            return existing.trimmingCharacters(in: .whitespaces) + "\n" + chunkTrimmed
+        }
+
+        let cleanedExisting = existing.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleanedExisting.isEmpty {
+            return chunkTrimmed
+        }
+
+        return cleanedExisting + " " + chunkTrimmed
     }
 }

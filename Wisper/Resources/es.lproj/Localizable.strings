@@ -123,3 +123,6 @@ Sin enviar audio a la nube.";
 "text.polish.fluent" = "Fluido (redacción más limpia)";
 "onboarding.model.default_included" = "Whisper Turbo incluido por defecto (~632 MB)";
 "onboarding.model.super_pro_note" = "Luego podrás instalar Super Pro (~1.5 GB) desde Configuración, manteniendo ambos modelos.";
+"menu.metrics.summary" = "TTFX: %d ms · Bloques: %d · Promedio: %d ms";
+"menu.permissions.open_guide" = "Pulsa para abrir guía paso a paso";
+"model.phase.warming_up" = "Optimización final para dictado instantáneo...";

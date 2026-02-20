@@ -17,6 +17,7 @@ final class TranscriptionEngine: @unchecked Sendable {
     private let chunkDurationSeconds: Double = 3.0
     private let sampleRate: Int = 16000
     private let modelDownloadMaxAttempts = 3
+    private var hasPrimedDecoder = false
 
     // Whisper hallucination patterns to filter out
     static let hallucinationPatterns: [String] = [
@@ -57,6 +58,7 @@ final class TranscriptionEngine: @unchecked Sendable {
         onPhaseChange: @escaping @Sendable (ModelPhase) -> Void
     ) async -> Bool {
         self.language = language
+        self.hasPrimedDecoder = false
 
         do {
             print("[Wisper] ====================================")
@@ -91,6 +93,10 @@ final class TranscriptionEngine: @unchecked Sendable {
 
             print("[Wisper] Download complete, calling WhisperKit init...")
             whisperKit = try await WhisperKit(config)
+
+            onPhaseChange(.loading(step: L10n.t("model.phase.warming_up")))
+            await primeDecoderIfNeeded()
+
             print("[Wisper] ====================================")
             print("[Wisper] MODEL READY")
             print("[Wisper] ====================================")
@@ -105,6 +111,32 @@ final class TranscriptionEngine: @unchecked Sendable {
             print("[Wisper] ====================================")
             onPhaseChange(.error(message: msg))
             return false
+        }
+    }
+
+    private func primeDecoderIfNeeded() async {
+        guard !hasPrimedDecoder, let whisperKit else { return }
+        hasPrimedDecoder = true
+
+        do {
+            let warmupAudio = Array(repeating: Float(0), count: Int(Double(sampleRate) * 0.35))
+            let options = DecodingOptions(
+                language: language,
+                temperature: 0,
+                usePrefillPrompt: true,
+                detectLanguage: language == nil,
+                skipSpecialTokens: true,
+                withoutTimestamps: true,
+                clipTimestamps: []
+            )
+
+            _ = try await whisperKit.transcribe(
+                audioArray: warmupAudio,
+                decodeOptions: options
+            )
+            print("[Wisper] ✅ Decoder warmup complete")
+        } catch {
+            print("[Wisper] ⚠️ Decoder warmup failed (non-fatal): \(error)")
         }
     }
 
