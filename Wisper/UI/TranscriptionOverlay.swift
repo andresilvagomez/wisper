@@ -200,7 +200,6 @@ struct RecordingIndicatorContent: View {
 final class OverlayWindowController {
     private var window: FloatingPanel?
     private let positionStorage = OverlayPositionStorage()
-    private var windowMoveObserver: NSObjectProtocol?
     private var dragInitialOrigin: NSPoint?
 
     @MainActor
@@ -215,19 +214,13 @@ final class OverlayWindowController {
 
         let content = RecordingIndicatorContent(
             onResetPosition: { [weak self] in
-                Task { @MainActor in
-                    self?.resetToDefaultPosition()
-                }
+                self?.resetToDefaultPosition()
             },
             onDragChanged: { [weak self] translation in
-                Task { @MainActor in
-                    self?.handleDragChanged(translation: translation)
-                }
+                self?.handleDragChanged(translation: translation)
             },
             onDragEnded: { [weak self] in
-                Task { @MainActor in
-                    self?.handleDragEnded()
-                }
+                self?.handleDragEnded()
             }
         )
             .environmentObject(appState)
@@ -275,14 +268,6 @@ final class OverlayWindowController {
 
         panel.orderFrontRegardless()
         self.window = panel
-        windowMoveObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.didMoveNotification,
-            object: panel,
-            queue: .main
-        ) { [weak self, weak panel] _ in
-            guard let self, let panel else { return }
-            self.positionStorage.save(panel.frame.origin)
-        }
 
         // Reactivate the previous app to guarantee focus is not stolen
         previousApp?.activate()
@@ -290,10 +275,6 @@ final class OverlayWindowController {
 
     @MainActor
     func hide() {
-        if let windowMoveObserver {
-            NotificationCenter.default.removeObserver(windowMoveObserver)
-            self.windowMoveObserver = nil
-        }
         dragInitialOrigin = nil
         window?.orderOut(nil)
         window = nil
