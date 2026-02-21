@@ -34,7 +34,7 @@ struct SpeexApp: App {
                 .environment(\.locale, Locale(identifier: appState.resolvedInterfaceLanguageCode))
         }
         .windowResizability(.contentSize)
-        .defaultSize(width: 500, height: 400)
+        .defaultSize(width: 760, height: 520)
     }
 }
 
@@ -63,7 +63,7 @@ private struct MenuBarLabelView: View {
     }
 
     private func presentOnboardingIfRequired() {
-        guard appState.needsAccessibility || appState.needsMicrophone else { return }
+        guard !appState.hasCompletedOnboarding else { return }
         NSApp.activate(ignoringOtherApps: true)
         openWindow(id: "onboarding")
     }

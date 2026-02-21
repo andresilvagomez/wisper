@@ -4,10 +4,10 @@ import Testing
 
 @Suite("Onboarding State Machine")
 struct OnboardingStateMachineTests {
-    @Test("Primary flow advances welcome to permissions to setup")
+    @Test("Primary flow advances permissions to setup")
     func primaryFlowAdvance() {
         var machine = OnboardingStateMachine(
-            currentStep: .welcome,
+            currentStep: .permissions,
             needsAccessibility: true,
             needsMicrophone: true,
             modelIsReady: false,
@@ -15,16 +15,13 @@ struct OnboardingStateMachineTests {
         )
 
         machine.goToNextPrimaryStep()
-        #expect(machine.currentStep == .permissions)
-
-        machine.goToNextPrimaryStep()
         #expect(machine.currentStep == .setup)
     }
 
-    @Test("Back navigation does not go below welcome")
+    @Test("Back navigation does not go below permissions")
     func backNavigationBounds() {
         var machine = OnboardingStateMachine(
-            currentStep: .welcome,
+            currentStep: .permissions,
             needsAccessibility: false,
             needsMicrophone: false,
             modelIsReady: false,
@@ -32,7 +29,7 @@ struct OnboardingStateMachineTests {
         )
 
         machine.goBack()
-        #expect(machine.currentStep == .welcome)
+        #expect(machine.currentStep == .permissions)
     }
 
     @Test("Permission gate and completion states")

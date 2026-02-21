@@ -1,9 +1,8 @@
 import KeyboardShortcuts
 
 enum OnboardingStep: Int, CaseIterable {
-    case welcome = 0
-    case permissions = 1
-    case setup = 2
+    case permissions = 0
+    case setup = 1
 }
 
 struct OnboardingStateMachine {
@@ -36,8 +35,6 @@ struct OnboardingStateMachine {
 
     mutating func goToNextPrimaryStep() {
         switch currentStep {
-        case .welcome:
-            currentStep = .permissions
         case .permissions:
             currentStep = .setup
         case .setup:
