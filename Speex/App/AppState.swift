@@ -253,6 +253,7 @@ final class AppState: ObservableObject {
         setupEngines()
         normalizeSelectedModelIfNeeded()
         applyBestDownloadedModelAsDefaultIfNeeded()
+        ensureModelWarmInBackground(reason: "app_init")
     }
 
     func setupEngines() {
@@ -379,7 +380,7 @@ final class AppState: ObservableObject {
             requestOnboardingPresentation()
         }
 
-        // Avoid aggressive auto-load on startup. Model warms on demand when user records.
+        ensureModelWarmInBackground(reason: "permission_audit")
     }
 
     func requestOnboardingPresentation() {
@@ -518,6 +519,7 @@ final class AppState: ObservableObject {
         audioLevel = 0
         recordingSessionCoordinator.beginSession()
         runtimeMetrics.reset()
+        transcriptionEngine?.resetSession()
         let resetResult = transcriptionCoordinator.resetSession()
         confirmedText = resetResult.confirmedText
         partialText = resetResult.partialText
@@ -618,7 +620,7 @@ final class AppState: ObservableObject {
                 modelName: model,
                 language: lang,
                 onPhaseChange: phaseHandler,
-                eagerWarmup: false
+                eagerWarmup: true
             ) ?? false
         }.value
 

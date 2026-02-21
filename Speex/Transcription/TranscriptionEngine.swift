@@ -14,25 +14,38 @@ final class TranscriptionEngine: @unchecked Sendable {
 
     // Configuration
     private var language: String?
-    private let chunkDurationSeconds: Double = 3.0
+    private let chunkDurationSeconds: Double = 5.0
     private let sampleRate: Int = 16000
     private let modelDownloadMaxAttempts = 3
     private var hasPrimedDecoder = false
 
-    // Whisper hallucination patterns to filter out
-    static let hallucinationPatterns: [String] = [
+    // Context carryover between chunks
+    private var lastTranscriptionTokens: [Int] = []
+    private var sessionLanguage: String?
+    private let maxPromptTokens: Int = 224
+
+    // Audio overlap between chunks
+    private let overlapDurationSeconds: Double = 0.5
+    private let minimumFinalDurationSeconds: Double = 0.5
+
+    // Whisper hallucination patterns — exact match only to avoid filtering legitimate text
+    static let hallucinationExactPhrases: [String] = [
         "[música]", "[music]", "[musica]",
         "[aplausos]", "[applause]",
         "[risas]", "[laughter]",
         "[silencio]", "[silence]",
         "[inaudible]",
         "(música)", "(music)", "(musica)",
-        "♪", "♫",
-        "gracias por ver",  // common Spanish hallucination
-        "subtítulos",       // subtitle hallucination
+        "gracias por ver",
+        "subtítulos",
         "thanks for watching",
         "subscribe",
+        "suscríbete",
+        "like and subscribe",
+        "dale like",
     ]
+    // Symbols that indicate hallucination when present anywhere
+    static let hallucinationSymbols: [Character] = ["♪", "♫"]
     static let leadingArtifactPrefixes: [String] = [
         "thank you",
         "thanks",
@@ -40,6 +53,38 @@ final class TranscriptionEngine: @unchecked Sendable {
 
     private var chunkSize: Int {
         Int(chunkDurationSeconds * Double(sampleRate))
+    }
+
+    private var overlapSize: Int {
+        Int(overlapDurationSeconds * Double(sampleRate))
+    }
+
+    private var minimumFinalSize: Int {
+        Int(minimumFinalDurationSeconds * Double(sampleRate))
+    }
+
+    private func buildDecodingOptions() -> DecodingOptions {
+        let effectiveLanguage = sessionLanguage ?? language
+        let promptTokens: [Int]? = lastTranscriptionTokens.isEmpty
+            ? nil
+            : Array(lastTranscriptionTokens.suffix(maxPromptTokens))
+
+        return DecodingOptions(
+            language: effectiveLanguage,
+            temperature: 0,
+            temperatureIncrementOnFallback: 0.2,
+            temperatureFallbackCount: 3,
+            usePrefillPrompt: true,
+            detectLanguage: effectiveLanguage == nil,
+            skipSpecialTokens: true,
+            withoutTimestamps: true,
+            clipTimestamps: [],
+            promptTokens: promptTokens,
+            suppressBlank: true,
+            compressionRatioThreshold: 2.4,
+            logProbThreshold: -1.0,
+            noSpeechThreshold: 0.6
+        )
     }
 
     init(
@@ -129,15 +174,7 @@ final class TranscriptionEngine: @unchecked Sendable {
 
         do {
             let warmupAudio = Array(repeating: Float(0), count: Int(Double(sampleRate) * 0.35))
-            let options = DecodingOptions(
-                language: language,
-                temperature: 0,
-                usePrefillPrompt: true,
-                detectLanguage: language == nil,
-                skipSpecialTokens: true,
-                withoutTimestamps: true,
-                clipTimestamps: []
-            )
+            let options = buildDecodingOptions()
 
             _ = try await whisperKit.transcribe(
                 audioArray: warmupAudio,
@@ -227,10 +264,14 @@ final class TranscriptionEngine: @unchecked Sendable {
     private func processAccumulatedAudio() {
         guard let whisperKit, !isProcessing else { return }
 
-        // Take the audio and CLEAR the accumulator so we don't re-process
+        // Keep last 0.5s as overlap for context continuity at chunk boundaries
         accumulatorLock.lock()
         let audioToProcess = audioAccumulator
-        audioAccumulator.removeAll()
+        if audioAccumulator.count > overlapSize {
+            audioAccumulator = Array(audioAccumulator.suffix(overlapSize))
+        } else {
+            audioAccumulator.removeAll()
+        }
         accumulatorLock.unlock()
 
         guard !audioToProcess.isEmpty else { return }
@@ -243,15 +284,7 @@ final class TranscriptionEngine: @unchecked Sendable {
 
             Task {
                 do {
-                    let options = DecodingOptions(
-                        language: self.language,
-                        temperature: 0,
-                        usePrefillPrompt: true,
-                        detectLanguage: self.language == nil,
-                        skipSpecialTokens: true,
-                        withoutTimestamps: true,
-                        clipTimestamps: []
-                    )
+                    let options = self.buildDecodingOptions()
 
                     let results = try await whisperKit.transcribe(
                         audioArray: audioToProcess,
@@ -265,9 +298,29 @@ final class TranscriptionEngine: @unchecked Sendable {
                         }
                     )
 
-                    if let text = results.first?.text.trimmingCharacters(in: .whitespacesAndNewlines),
-                       !text.isEmpty
-                    {
+                    if let result = results.first {
+                        // Save tokens for context carryover to next chunk
+                        let tokens = result.segments.flatMap(\.tokens)
+                        if !tokens.isEmpty {
+                            self.lastTranscriptionTokens = tokens
+                        }
+
+                        // Lock language after first successful detection
+                        if self.sessionLanguage == nil, self.language == nil {
+                            let detected = result.language
+                            if !detected.isEmpty {
+                                self.sessionLanguage = detected
+                                print("[Speex] Language locked for session: \(detected)")
+                            }
+                        }
+
+                        let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !text.isEmpty else {
+                            self.isProcessing = false
+                            waitForCompletion.signal()
+                            return
+                        }
+
                         let cleanedText = TranscriptionEngine.sanitizedLeadingArtifacts(from: text)
                         guard !cleanedText.isEmpty else {
                             print("[Speex] Filtered leading artifact chunk: \(text)")
@@ -301,7 +354,11 @@ final class TranscriptionEngine: @unchecked Sendable {
         audioAccumulator.removeAll()
         accumulatorLock.unlock()
 
-        guard let whisperKit, !remainingAudio.isEmpty else {
+        // Discard very short final chunks (< 0.5s) — high hallucination risk
+        guard let whisperKit, remainingAudio.count >= minimumFinalSize else {
+            if !remainingAudio.isEmpty {
+                print("[Speex] Discarding short final chunk: \(remainingAudio.count) samples (\(String(format: "%.2f", Double(remainingAudio.count) / Double(sampleRate)))s)")
+            }
             completion?()
             return
         }
@@ -315,15 +372,7 @@ final class TranscriptionEngine: @unchecked Sendable {
 
             Task {
                 do {
-                    let options = DecodingOptions(
-                        language: self.language,
-                        temperature: 0,
-                        usePrefillPrompt: true,
-                        detectLanguage: self.language == nil,
-                        skipSpecialTokens: true,
-                        withoutTimestamps: true,
-                        clipTimestamps: []
-                    )
+                    let options = self.buildDecodingOptions()
 
                     let results = try await whisperKit.transcribe(
                         audioArray: remainingAudio,
@@ -367,10 +416,16 @@ final class TranscriptionEngine: @unchecked Sendable {
         }
     }
 
-    func clearBuffer() {
+    func resetSession() {
         accumulatorLock.lock()
         audioAccumulator.removeAll()
         accumulatorLock.unlock()
+        lastTranscriptionTokens.removeAll()
+        sessionLanguage = nil
+    }
+
+    func clearBuffer() {
+        resetSession()
     }
 
     /// Returns true if the text is a known Whisper hallucination
@@ -380,11 +435,14 @@ final class TranscriptionEngine: @unchecked Sendable {
         // Empty or very short (1-2 chars)
         if lower.count < 3 { return true }
 
-        // Exact match or contained in hallucination patterns
-        for pattern in hallucinationPatterns {
-            if lower == pattern || lower.contains(pattern) {
-                return true
-            }
+        // Exact match against known hallucination phrases
+        for phrase in hallucinationExactPhrases {
+            if lower == phrase { return true }
+        }
+
+        // Music symbols anywhere in text
+        for symbol in hallucinationSymbols {
+            if lower.contains(symbol) { return true }
         }
 
         // Bracketed/parenthesized text like [anything] or (anything)

@@ -120,4 +120,41 @@ struct HallucinationFilterTests {
         // Text that happens to have brackets but is real speech
         #expect(!TranscriptionEngine.isHallucination("the array [1,2,3] is valid"))
     }
+
+    // MARK: - False positive prevention (exact match vs contains)
+
+    @Test("Does NOT filter text containing 'subscribe' as substring")
+    func passesSubscribeInContext() {
+        #expect(!TranscriptionEngine.isHallucination("I want to subscribe to the plan"))
+        #expect(!TranscriptionEngine.isHallucination("Me quiero subscribir al servicio"))
+    }
+
+    @Test("Does NOT filter text containing 'subtítulos' as substring")
+    func passesSubtitulosInContext() {
+        #expect(!TranscriptionEngine.isHallucination("Los subtítulos están bien hechos"))
+        #expect(!TranscriptionEngine.isHallucination("Necesito agregar subtítulos al video"))
+    }
+
+    @Test("Does NOT filter text containing 'gracias por ver' as substring")
+    func passesGraciasPorVerInContext() {
+        #expect(!TranscriptionEngine.isHallucination("Le dije gracias por ver el documento"))
+    }
+
+    @Test("Does NOT filter text containing 'thanks for watching' as substring")
+    func passesThanksForWatchingInContext() {
+        #expect(!TranscriptionEngine.isHallucination("He said thanks for watching the presentation"))
+    }
+
+    @Test("Does NOT filter text containing 'music' as regular word")
+    func passesMusicAsWord() {
+        #expect(!TranscriptionEngine.isHallucination("I love music and dancing"))
+        #expect(!TranscriptionEngine.isHallucination("La música es mi pasión"))
+    }
+
+    @Test("Filters new hallucination phrases")
+    func filtersNewPhrases() {
+        #expect(TranscriptionEngine.isHallucination("suscríbete"))
+        #expect(TranscriptionEngine.isHallucination("like and subscribe"))
+        #expect(TranscriptionEngine.isHallucination("dale like"))
+    }
 }
