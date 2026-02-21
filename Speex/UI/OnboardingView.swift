@@ -32,7 +32,9 @@ struct OnboardingView: View {
             }
         }
         .onReceive(permissionsAutoRefresh) { _ in
-            guard currentStep == 0 else { return }
+            guard currentStep == 0,
+                  appState.needsAccessibility || appState.needsMicrophone
+            else { return }
             appState.refreshPermissionState()
         }
     }

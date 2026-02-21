@@ -20,6 +20,9 @@ Package.resolved
 events.jsonl
 sessions/
 
+# Builds / distribution
+dist/
+
 # Firebase
 GoogleService-Info.plist
 Speex/Resources/GoogleService-Info.plist
