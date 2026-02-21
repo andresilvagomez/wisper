@@ -4,8 +4,8 @@ import Foundation
 
 final class TextInjector: @unchecked Sendable {
     private let pasteQueue = DispatchQueue(label: "com.speex.textinjector", qos: .userInteractive)
-    private let activationDelayMicros: useconds_t = 220_000
-    private let pasteRetryCount = 3
+    private let activationDelayMicros: useconds_t = 350_000
+    private let pasteRetryCount = 2
 
     /// The app that was active when recording started — paste goes here.
     private var targetApp: NSRunningApplication?
@@ -44,10 +44,25 @@ final class TextInjector: @unchecked Sendable {
         let app = resolvedTargetApp()
 
         pasteQueue.async {
-            // 1. Activate target app first
+            // 1. Yield Speex's activation and transfer focus to target app
             if let app {
-                app.activate(options: [.activateIgnoringOtherApps])
-                usleep(self.activationDelayMicros) // let app/window become active
+                // yieldActivation must run on main thread — cooperatively hand focus to target
+                DispatchQueue.main.sync {
+                    NSApp.yieldActivation(to: app)
+                }
+                app.activate()
+                usleep(self.activationDelayMicros)
+
+                // Verify the target app actually became active
+                let frontmost = NSWorkspace.shared.frontmostApplication
+                if let frontmost, frontmost.processIdentifier != app.processIdentifier {
+                    print("[Speex] ⚠️ Target app did not activate (frontmost: \(frontmost.localizedName ?? "?")), retrying...")
+                    DispatchQueue.main.sync {
+                        NSApp.yieldActivation(to: app)
+                    }
+                    app.activate()
+                    usleep(self.activationDelayMicros)
+                }
             }
 
             // 2. Try direct AX insertion (primary)
@@ -173,10 +188,8 @@ final class TextInjector: @unchecked Sendable {
         cmdVDown.flags = .maskCommand
         cmdVUp.flags = .maskCommand
 
-        cmdVDown.post(tap: .cgAnnotatedSessionEventTap)
         cmdVDown.post(tap: .cghidEventTap)
-        usleep(20_000)
-        cmdVUp.post(tap: .cgAnnotatedSessionEventTap)
+        usleep(50_000) // 50ms between key down and up
         cmdVUp.post(tap: .cghidEventTap)
 
         print("[Speex] TextInjector: Cmd+V sent")
@@ -186,7 +199,7 @@ final class TextInjector: @unchecked Sendable {
         for attempt in 1...pasteRetryCount {
             simulateCmdV()
             if attempt < pasteRetryCount {
-                usleep(65_000)
+                usleep(100_000) // 100ms between retries
             }
         }
     }
