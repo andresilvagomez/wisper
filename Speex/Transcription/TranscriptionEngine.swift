@@ -4,7 +4,9 @@ import Foundation
 final class TranscriptionEngine: @unchecked Sendable {
     private var whisperKit: WhisperKit?
     private var audioAccumulator: [Float] = []
+    private var fullSessionAudio: [Float] = []
     private var isProcessing = false
+    private var isShuttingDown = false
     private let processingQueue = DispatchQueue(label: "com.speex.transcription", qos: .userInteractive)
     private let accumulatorLock = NSLock()
 
@@ -26,7 +28,8 @@ final class TranscriptionEngine: @unchecked Sendable {
 
     // Audio overlap between chunks
     private let overlapDurationSeconds: Double = 0.5
-    private let minimumFinalDurationSeconds: Double = 0.5
+    private let minimumFinalDurationSeconds: Double = 0.15
+    private let finalRetranscriptionSeconds: Double = 25.0
 
     // Whisper hallucination patterns — exact match only to avoid filtering legitimate text
     static let hallucinationExactPhrases: [String] = [
@@ -63,6 +66,10 @@ final class TranscriptionEngine: @unchecked Sendable {
         Int(minimumFinalDurationSeconds * Double(sampleRate))
     }
 
+    private var finalRetranscriptionSize: Int {
+        Int(finalRetranscriptionSeconds * Double(sampleRate))
+    }
+
     private func buildDecodingOptions() -> DecodingOptions {
         let effectiveLanguage = sessionLanguage ?? language
         let promptTokens: [Int]? = lastTranscriptionTokens.isEmpty
@@ -82,8 +89,30 @@ final class TranscriptionEngine: @unchecked Sendable {
             promptTokens: promptTokens,
             suppressBlank: true,
             compressionRatioThreshold: 2.4,
-            logProbThreshold: -1.0,
-            noSpeechThreshold: 0.6
+            logProbThreshold: -1.0
+        )
+    }
+
+    /// Relaxed options for the final chunk — user explicitly stopped, so speech is expected.
+    /// Removes noSpeechThreshold and quality filters that reject short segments.
+    private func buildFinalDecodingOptions() -> DecodingOptions {
+        let effectiveLanguage = sessionLanguage ?? language
+        let promptTokens: [Int]? = lastTranscriptionTokens.isEmpty
+            ? nil
+            : Array(lastTranscriptionTokens.suffix(maxPromptTokens))
+
+        return DecodingOptions(
+            language: effectiveLanguage,
+            temperature: 0,
+            temperatureIncrementOnFallback: 0.2,
+            temperatureFallbackCount: 5,
+            usePrefillPrompt: true,
+            detectLanguage: effectiveLanguage == nil,
+            skipSpecialTokens: true,
+            withoutTimestamps: true,
+            clipTimestamps: [],
+            promptTokens: promptTokens,
+            suppressBlank: true
         )
     }
 
@@ -250,13 +279,24 @@ final class TranscriptionEngine: @unchecked Sendable {
         )
     }
 
+    /// Prevents new chunk processing so all remaining audio flows
+    /// to `finalize()` as a single contiguous block.  Call immediately
+    /// when recording stops, before the grace-period / stopCapture.
+    func prepareForFinalize() {
+        accumulatorLock.lock()
+        isShuttingDown = true
+        accumulatorLock.unlock()
+    }
+
     func processAudioBuffer(_ samples: [Float]) {
         accumulatorLock.lock()
         audioAccumulator.append(contentsOf: samples)
+        fullSessionAudio.append(contentsOf: samples)
         let currentLength = audioAccumulator.count
+        let shuttingDown = isShuttingDown
         accumulatorLock.unlock()
 
-        if currentLength >= chunkSize && !isProcessing {
+        if currentLength >= chunkSize && !isProcessing && !shuttingDown {
             processAccumulatedAudio()
         }
     }
@@ -298,23 +338,30 @@ final class TranscriptionEngine: @unchecked Sendable {
                         }
                     )
 
-                    if let result = results.first {
-                        // Save tokens for context carryover to next chunk
-                        let tokens = result.segments.flatMap(\.tokens)
-                        if !tokens.isEmpty {
-                            self.lastTranscriptionTokens = tokens
+                    if !results.isEmpty {
+                        // Save tokens from the last result for context carryover
+                        if let lastResult = results.last {
+                            let tokens = lastResult.segments.flatMap(\.tokens)
+                            if !tokens.isEmpty {
+                                self.lastTranscriptionTokens = tokens
+                            }
                         }
 
                         // Lock language after first successful detection
                         if self.sessionLanguage == nil, self.language == nil {
-                            let detected = result.language
-                            if !detected.isEmpty {
+                            if let detected = results.first?.language, !detected.isEmpty {
                                 self.sessionLanguage = detected
                                 print("[Speex] Language locked for session: \(detected)")
                             }
                         }
 
-                        let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                        // Concatenate text from ALL results — WhisperKit may
+                        // return multiple TranscriptionResult objects.
+                        let text = results
+                            .map { $0.text.trimmingCharacters(in: .whitespacesAndNewlines) }
+                            .filter { !$0.isEmpty }
+                            .joined(separator: " ")
+
                         guard !text.isEmpty else {
                             self.isProcessing = false
                             waitForCompletion.signal()
@@ -348,67 +395,92 @@ final class TranscriptionEngine: @unchecked Sendable {
         }
     }
 
-    func finalize(completion: (@Sendable () -> Void)? = nil) {
+    /// Re-transcribes the tail of the full session audio to recover any text
+    /// that chunk-based processing may have truncated at sentence boundaries.
+    ///
+    /// - Parameters:
+    ///   - confirmedText: The text already confirmed by chunk processing.
+    ///     Used to extract only the **new** tail from the retranscription.
+    ///   - completion: Called when done. Receives the delta text (or `nil`).
+    ///     When provided, `onFinalResult` is skipped to avoid races.
+    func finalize(confirmedText: String = "", completion: (@Sendable (_ finalText: String?) -> Void)? = nil) {
         accumulatorLock.lock()
-        let remainingAudio = audioAccumulator
+        let audioForFinal: [Float]
+        if fullSessionAudio.count > finalRetranscriptionSize {
+            audioForFinal = Array(fullSessionAudio.suffix(finalRetranscriptionSize))
+        } else {
+            audioForFinal = fullSessionAudio
+        }
         audioAccumulator.removeAll()
+        fullSessionAudio.removeAll()
+        isShuttingDown = false
         accumulatorLock.unlock()
 
-        // Discard very short final chunks (< 0.5s) — high hallucination risk
-        guard let whisperKit, remainingAudio.count >= minimumFinalSize else {
-            if !remainingAudio.isEmpty {
-                print("[Speex] Discarding short final chunk: \(remainingAudio.count) samples (\(String(format: "%.2f", Double(remainingAudio.count) / Double(sampleRate)))s)")
+        let audioDuration = Double(audioForFinal.count) / Double(sampleRate)
+        print("[Speex] Finalize: retranscribing \(audioForFinal.count) samples (\(String(format: "%.2f", audioDuration))s)")
+
+        guard let whisperKit, audioForFinal.count >= minimumFinalSize else {
+            if !audioForFinal.isEmpty {
+                print("[Speex] Discarding short final audio: \(audioForFinal.count) samples (\(String(format: "%.2f", audioDuration))s)")
             }
-            completion?()
+            completion?(nil)
             return
         }
 
+        let confirmedSnapshot = confirmedText
+
         processingQueue.async { [weak self] in
             guard let self else {
-                completion?()
+                completion?(nil)
                 return
             }
             let waitForCompletion = DispatchSemaphore(value: 0)
 
             Task {
+                var producedText: String?
                 do {
-                    let options = self.buildDecodingOptions()
+                    let options = self.buildFinalDecodingOptions()
 
                     let results = try await whisperKit.transcribe(
-                        audioArray: remainingAudio,
-                        decodeOptions: options,
-                        callback: { progress in
-                            let partial = progress.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                            if !partial.isEmpty {
-                                self.onPartialResult(partial)
-                            }
-                            return nil
-                        }
+                        audioArray: audioForFinal,
+                        decodeOptions: options
                     )
 
-                    if let text = results.first?.text.trimmingCharacters(in: .whitespacesAndNewlines),
-                       !text.isEmpty
-                    {
-                        let cleanedText = TranscriptionEngine.sanitizedLeadingArtifacts(from: text)
-                        guard !cleanedText.isEmpty else {
-                            print("[Speex] Filtered leading artifact final chunk: \(text)")
-                            completion?()
-                            waitForCompletion.signal()
-                            return
-                        }
+                    let text = results
+                        .map { $0.text.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .filter { !$0.isEmpty }
+                        .joined(separator: " ")
 
-                        if TranscriptionEngine.isHallucination(cleanedText) {
+                    if !text.isEmpty {
+                        let cleanedText = TranscriptionEngine.sanitizedLeadingArtifacts(from: text)
+                        if cleanedText.isEmpty {
+                            print("[Speex] Filtered leading artifact final: \(text)")
+                        } else if TranscriptionEngine.isHallucination(cleanedText) {
                             print("[Speex] Filtered hallucination (final): \(cleanedText)")
                         } else {
-                            print("[Speex] Final chunk: \(cleanedText)")
-                            self.onFinalResult(cleanedText)
+                            print("[Speex] Final retranscription: \(cleanedText)")
+                            let delta = TranscriptionEngine.extractNewTail(
+                                retranscribed: cleanedText,
+                                alreadyConfirmed: confirmedSnapshot
+                            )
+                            if let delta, !delta.isEmpty {
+                                print("[Speex] Final delta: \(delta)")
+                                producedText = delta
+                            } else {
+                                print("[Speex] No new text in retranscription (already confirmed)")
+                            }
                         }
                     }
                 } catch {
                     print("[Speex] Final transcription error: \(error)")
                 }
 
-                completion?()
+                if let completion {
+                    completion(producedText)
+                } else if let producedText {
+                    self.onFinalResult(producedText)
+                }
+
                 waitForCompletion.signal()
             }
 
@@ -416,9 +488,22 @@ final class TranscriptionEngine: @unchecked Sendable {
         }
     }
 
+    /// Waits for any in-progress chunk transcription to complete.
+    /// Call before `finalize()` to ensure no audio is lost when
+    /// `processAccumulatedAudio` is still running on the processing queue.
+    func flushProcessing() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            processingQueue.async {
+                continuation.resume()
+            }
+        }
+    }
+
     func resetSession() {
         accumulatorLock.lock()
         audioAccumulator.removeAll()
+        fullSessionAudio.removeAll()
+        isShuttingDown = false
         accumulatorLock.unlock()
         lastTranscriptionTokens.removeAll()
         sessionLanguage = nil
@@ -426,6 +511,52 @@ final class TranscriptionEngine: @unchecked Sendable {
 
     func clearBuffer() {
         resetSession()
+    }
+
+    /// Extracts only the NEW text from a retranscription that is not already
+    /// present in `alreadyConfirmed`. Uses the last few words of confirmed text
+    /// as an anchor to find where new content begins in the retranscription.
+    static func extractNewTail(retranscribed: String, alreadyConfirmed: String) -> String? {
+        let confirmed = alreadyConfirmed.trimmingCharacters(in: .whitespacesAndNewlines)
+        let full = retranscribed.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !full.isEmpty else { return nil }
+        guard !confirmed.isEmpty else { return full }
+
+        let confirmedWords = confirmed.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+        let fullWords = full.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+
+        guard confirmedWords.count >= 2, fullWords.count >= 2 else { return full }
+
+        let maxAnchor = min(10, confirmedWords.count, fullWords.count)
+
+        for anchorLen in stride(from: maxAnchor, through: 2, by: -1) {
+            let anchorWords = Array(confirmedWords.suffix(anchorLen))
+            let searchEnd = fullWords.count - anchorLen
+            guard searchEnd >= 0 else { continue }
+
+            // Search from the end — the anchor is expected near the tail
+            for i in stride(from: searchEnd, through: 0, by: -1) {
+                var matches = true
+                for j in 0..<anchorLen {
+                    let a = stripPunctuation(anchorWords[j]).lowercased()
+                    let b = stripPunctuation(fullWords[i + j]).lowercased()
+                    if a != b { matches = false; break }
+                }
+                if matches {
+                    let deltaStart = i + anchorLen
+                    if deltaStart >= fullWords.count { return nil }
+                    return fullWords[deltaStart...].joined(separator: " ")
+                }
+            }
+        }
+
+        // No anchor found — return full retranscription as fallback
+        return full
+    }
+
+    private static func stripPunctuation(_ word: String) -> String {
+        word.trimmingCharacters(in: .punctuationCharacters)
     }
 
     /// Returns true if the text is a known Whisper hallucination

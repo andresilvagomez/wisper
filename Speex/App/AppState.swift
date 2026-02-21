@@ -563,33 +563,82 @@ final class AppState: ObservableObject {
         guard case let .stopped(shouldFinalizeOnRelease) = stopEvaluation else { return }
         isRecording = false
         audioLevel = 0
-        audioEngine?.stopCapture()
         overlayController.hide()
+        transcriptionEngine?.prepareForFinalize()
         print("[Speex] ⏹ Recording stopped (confirmed: \(confirmedText.count) chars)")
 
-        if shouldFinalizeOnRelease {
-            transcriptionEngine?.finalize { [weak self] in
-                Task { @MainActor in
-                    guard let self else { return }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
 
-                    for _ in 0..<12 {
-                        if !self.confirmedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { break }
-                        try? await Task.sleep(for: .milliseconds(50))
+            // 1. Grace period — let the AVAudioEngine tap deliver its last
+            //    in-flight buffers into the accumulator before tearing down.
+            try? await Task.sleep(for: .milliseconds(250))
+            self.audioEngine?.stopCapture()
+
+            // 2. Wait for any chunk that processAccumulatedAudio is currently
+            //    transcribing. This ensures its result has been delivered and
+            //    confirmedText is up-to-date before the retranscription.
+            await self.transcriptionEngine?.flushProcessing()
+
+            // 3. Finalize: retranscribe the tail of the full session audio and
+            //    extract only the new text (delta) not already in confirmedText.
+            let currentConfirmedText = self.confirmedText
+
+            if shouldFinalizeOnRelease {
+                self.transcriptionEngine?.finalize(confirmedText: currentConfirmedText) { [weak self] finalText in
+                    Task { @MainActor in
+                        guard let self else { return }
+
+                        if let finalText {
+                            let result = self.transcriptionCoordinator.consumeFinal(
+                                text: finalText,
+                                mode: self.transcriptionMode,
+                                confirmedText: self.confirmedText,
+                                recordingStartedAt: self.recordingSessionCoordinator.recordingStartedAt,
+                                chunkStartedAt: Date()
+                            )
+                            self.confirmedText = result.confirmedText
+                            self.partialText = result.partialText
+                        }
+
+                        guard let polished = self.transcriptionCoordinator.finalizedOnReleaseText(
+                            confirmedText: self.confirmedText,
+                            partialText: self.partialText
+                        ) else { return }
+
+                        self.textInjector?.typeText(
+                            polished,
+                            clipboardAfterInjection: polished
+                        )
                     }
+                }
+            } else {
+                // Streaming mode — use completion to inject the delta directly.
+                self.transcriptionEngine?.finalize(confirmedText: currentConfirmedText) { [weak self] finalText in
+                    Task { @MainActor in
+                        guard let self, let finalText else { return }
 
-                    guard let polished = self.transcriptionCoordinator.finalizedOnReleaseText(
-                        confirmedText: self.confirmedText,
-                        partialText: self.partialText
-                    ) else { return }
+                        let result = self.transcriptionCoordinator.consumeFinal(
+                            text: finalText,
+                            mode: self.transcriptionMode,
+                            confirmedText: self.confirmedText,
+                            recordingStartedAt: self.recordingSessionCoordinator.recordingStartedAt,
+                            chunkStartedAt: Date()
+                        )
+                        self.confirmedText = result.confirmedText
+                        self.partialText = result.partialText
 
-                    self.textInjector?.typeText(
-                        polished,
-                        clipboardAfterInjection: polished
-                    )
+                        switch result.action {
+                        case .none:
+                            break
+                        case let .typeText(text, clipboardAfterInjection):
+                            self.textInjector?.typeText(text, clipboardAfterInjection: clipboardAfterInjection)
+                        case let .copyToClipboard(text):
+                            self.textInjector?.copyAccumulatedTextToClipboard(text)
+                        }
+                    }
                 }
             }
-        } else {
-            transcriptionEngine?.finalize()
         }
     }
 
