@@ -53,6 +53,22 @@ struct OnboardingView: View {
         ShortcutConflictEvaluator.advisory(for: KeyboardShortcuts.getShortcut(for: HotkeyManager.shortcutName))
     }
 
+    private var modelActionButtonTitle: String {
+        switch appState.modelPhase {
+        case .downloading:
+            return "Descargando..."
+        case .loading:
+            return "Preparando..."
+        case .idle, .error:
+            if appState.isModelInstalledLocally(appState.selectedModel) {
+                return "Instalar modelo"
+            }
+            return "Descargar e instalar"
+        case .ready:
+            return "Instalar modelo"
+        }
+    }
+
     // MARK: - Header
 
     private var header: some View {
@@ -128,7 +144,7 @@ struct OnboardingView: View {
                         .keyboardShortcut(.defaultAction)
                     }
                 } else {
-                    Button("Cargar modelo") {
+                    Button(modelActionButtonTitle) {
                         Task { await appState.loadModel() }
                     }
                     .buttonStyle(.borderedProminent)
@@ -409,40 +425,64 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Step 2: Shortcut & Model
+    // MARK: - Step 2: Model Selection
 
     private var modelStep: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Atajo y modelo")
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Elige tu motor de transcripción")
                 .font(.title3)
                 .fontWeight(.semibold)
 
-            Text("Define tu atajo y deja el modelo listo para usar.")
+            Text("Selecciona cómo quieres procesar tu voz.")
                 .foregroundColor(.secondary)
+                .font(.callout)
 
-            GroupBox("Atajo global") {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        KeyboardShortcuts.Recorder("Grabar", name: HotkeyManager.shortcutName)
-                        Spacer()
-                    }
-
-                    shortcutAdvisoryView
+            HStack(spacing: 12) {
+                modelOptionCard(
+                    icon: "bolt.fill",
+                    title: "Speex Turbo",
+                    badge: "Recomendado",
+                    badgeColor: .blue,
+                    features: ["Rápido y muy preciso", "Funciona sin conexión", "Descarga ligera (~632 MB)"],
+                    isSelected: appState.selectedModel == AppState.defaultBundledModelID,
+                    isDisabled: appState.modelPhase.isActive,
+                    isInstalled: appState.isModelInstalledLocally(AppState.defaultBundledModelID)
+                ) {
+                    appState.selectedModel = AppState.defaultBundledModelID
                 }
-                .padding(.top, 2)
+
+                modelOptionCard(
+                    icon: "sparkles",
+                    title: "Speex Super Pro",
+                    badge: "Máxima precisión",
+                    badgeColor: .purple,
+                    features: ["Máxima precisión por palabra", "Funciona sin conexión", "Para dictados extensos (~1.5 GB)"],
+                    isSelected: appState.selectedModel == AppState.optionalSuperModelID,
+                    isDisabled: appState.modelPhase.isActive,
+                    isInstalled: appState.isModelInstalledLocally(AppState.optionalSuperModelID)
+                ) {
+                    appState.selectedModel = AppState.optionalSuperModelID
+                }
+
+                modelOptionCard(
+                    icon: "cloud.fill",
+                    title: "Cloud",
+                    badge: "Próximamente",
+                    badgeColor: .gray,
+                    features: ["Sin usar espacio en tu Mac", "Siempre actualizado", "Disponible próximamente"],
+                    isSelected: false,
+                    isDisabled: true,
+                    isInstalled: false
+                ) { }
             }
 
-            GroupBox("Modelo de transcripción") {
-                VStack(alignment: .leading, spacing: 10) {
-                    Label(L10n.t("onboarding.model.default_included"), systemImage: "checkmark.seal.fill")
-                        .foregroundColor(.green)
-                        .font(.callout)
+            modelStatusView
 
-                    Text(L10n.t("onboarding.model.super_pro_note"))
-                        .font(.caption)
+            HStack(spacing: 16) {
+                HStack(spacing: 6) {
+                    Image(systemName: "globe")
                         .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
+                        .font(.callout)
                     Picker("Idioma", selection: $appState.selectedLanguage) {
                         ForEach(AppState.availableLanguages, id: \.code) { lang in
                             Text(lang.name).tag(lang.code)
@@ -450,16 +490,99 @@ struct OnboardingView: View {
                     }
                     .pickerStyle(.menu)
                     .disabled(appState.modelPhase.isActive)
-
-                    modelStatusView
                 }
-                .padding(.top, 2)
+
+                Divider().frame(height: 20)
+
+                HStack(spacing: 6) {
+                    Image(systemName: "command")
+                        .foregroundColor(.secondary)
+                        .font(.callout)
+                    KeyboardShortcuts.Recorder("Atajo", name: HotkeyManager.shortcutName)
+                }
+
+                Spacer()
+            }
+
+            if shortcutAdvisory.level != .info {
+                shortcutAdvisoryView
             }
 
             Spacer()
         }
-        .padding(.horizontal, 32)
+        .padding(.horizontal, 24)
         .padding(.bottom, 12)
+    }
+
+    private func modelOptionCard(
+        icon: String,
+        title: String,
+        badge: String,
+        badgeColor: Color,
+        features: [String],
+        isSelected: Bool,
+        isDisabled: Bool,
+        isInstalled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.title2)
+                        .foregroundStyle(isDisabled ? Color.gray.gradient : badgeColor.gradient)
+                    Spacer()
+                    if isInstalled {
+                        Label("Instalado", systemImage: "arrow.down.circle.fill")
+                            .font(.system(size: 9))
+                            .foregroundColor(.green)
+                    }
+                }
+
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(isDisabled ? .secondary : .primary)
+
+                Text(badge)
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(badgeColor.opacity(0.12))
+                    .foregroundColor(isDisabled ? .gray : badgeColor)
+                    .clipShape(Capsule())
+
+                Spacer(minLength: 2)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(features, id: \.self) { feature in
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(isDisabled ? .gray : .green)
+                            Text(feature)
+                                .font(.caption2)
+                                .foregroundStyle(isDisabled ? .tertiary : .secondary)
+                        }
+                    }
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? badgeColor.opacity(0.06) : Color(NSColor.controlBackgroundColor).opacity(0.3))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(
+                        isSelected ? badgeColor : Color.secondary.opacity(0.15),
+                        lineWidth: isSelected ? 2 : 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
     }
 
     @ViewBuilder
@@ -467,18 +590,44 @@ struct OnboardingView: View {
         switch appState.modelPhase {
         case .downloading(let progress):
             VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Descargando modelo...")
+                        .font(.callout)
+                        .fontWeight(.medium)
+                }
                 ProgressView(value: progress)
+                    .tint(.blue)
                 Text(L10n.f("onboarding.model.downloading_percent", progress * 100))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.blue.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.blue.opacity(0.15), lineWidth: 1)
+            )
         case .loading(let step):
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
                 Text(step)
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundColor(.secondary)
             }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.orange.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.orange.opacity(0.15), lineWidth: 1)
+            )
         case .ready:
             Label("Modelo listo para transcribir", systemImage: "checkmark.circle.fill")
                 .foregroundColor(.green)
@@ -488,9 +637,15 @@ struct OnboardingView: View {
                 .foregroundColor(.orange)
                 .font(.caption)
         case .idle:
-            Text("Pulsa \"Cargar modelo\" para finalizar.")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            if appState.isModelInstalledLocally(appState.selectedModel) {
+                Label("Modelo descargado — listo para instalar", systemImage: "arrow.down.circle.fill")
+                    .foregroundColor(.blue)
+                    .font(.callout)
+            } else {
+                Label("Se descargará al instalar", systemImage: "arrow.down.to.line")
+                    .foregroundColor(.secondary)
+                    .font(.callout)
+            }
         }
     }
 
