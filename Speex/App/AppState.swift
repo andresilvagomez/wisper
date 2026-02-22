@@ -253,7 +253,9 @@ final class AppState: ObservableObject {
         setupEngines()
         normalizeSelectedModelIfNeeded()
         applyBestDownloadedModelAsDefaultIfNeeded()
-        ensureModelWarmInBackground(reason: "app_init")
+        if hasCompletedOnboarding {
+            ensureModelWarmInBackground(reason: "app_init")
+        }
     }
 
     func setupEngines() {
@@ -380,7 +382,9 @@ final class AppState: ObservableObject {
             requestOnboardingPresentation()
         }
 
-        ensureModelWarmInBackground(reason: "permission_audit")
+        if hasCompletedOnboarding {
+            ensureModelWarmInBackground(reason: "permission_audit")
+        }
     }
 
     func requestOnboardingPresentation() {
