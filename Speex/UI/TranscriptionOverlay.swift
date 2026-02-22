@@ -62,25 +62,25 @@ struct OverlayPositionStorage {
 
 struct AudioWaveView: View {
     let audioLevel: Float
-    let barCount = 5
-    @State private var animatedLevels: [CGFloat] = Array(repeating: 0.15, count: 5)
+    private let barCount = 5
+    @State private var displayLevels: [CGFloat] = Array(repeating: 0.15, count: 5)
+    private let frameTimer = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
 
     var body: some View {
         HStack(spacing: 3) {
             ForEach(0..<barCount, id: \.self) { index in
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Color.red)
-                    .frame(width: 3, height: max(4, animatedLevels[index] * 24))
+                    .frame(width: 3, height: max(4, displayLevels[index] * 24))
             }
         }
         .frame(height: 24)
-        .onChange(of: audioLevel) { _, newLevel in
-            withAnimation(.easeOut(duration: 0.1)) {
-                for i in 0..<barCount {
-                    let variation = Float.random(in: 0.6...1.4)
-                    let level = CGFloat(newLevel * variation)
-                    animatedLevels[i] = max(0.15, min(1.0, level))
-                }
+        .onReceive(frameTimer) { _ in
+            let level = CGFloat(audioLevel)
+            for i in 0..<barCount {
+                let variation = CGFloat.random(in: 0.7...1.3)
+                let target = max(0.15, min(1.0, level * variation))
+                displayLevels[i] += (target - displayLevels[i]) * 0.4
             }
         }
     }
