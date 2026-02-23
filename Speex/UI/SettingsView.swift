@@ -143,7 +143,7 @@ struct ModelSettingsTab: View {
                     icon: "bolt.fill",
                     title: "Speex Turbo",
                     badge: "Recomendado",
-                    badgeColor: .blue,
+                    badgeColor: .primary,
                     features: ["Rápido y muy preciso", "Funciona sin conexión", "Descarga ligera (~632 MB)"],
                     isSelected: appState.selectedModel == AppState.defaultBundledModelID,
                     isDisabled: appState.modelPhase.isActive || appState.isRecording,
@@ -292,7 +292,7 @@ struct ModelSettingsTab: View {
                         .fontWeight(.medium)
                 }
                 ProgressView(value: progress)
-                    .tint(.blue)
+                    .tint(.primary)
                 Text(L10n.f("settings.model.downloading_percent", progress * 100))
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -300,11 +300,11 @@ struct ModelSettingsTab: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.blue.opacity(0.05))
+                    .fill(Color.primary.opacity(0.04))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.blue.opacity(0.15), lineWidth: 1)
+                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
             )
         case .loading(let step):
             HStack(spacing: 8) {
@@ -334,7 +334,7 @@ struct ModelSettingsTab: View {
         case .idle:
             if appState.isModelInstalledLocally(appState.selectedModel) {
                 Label("Modelo descargado — listo para cargar", systemImage: "arrow.down.circle.fill")
-                    .foregroundColor(.blue)
+                    .foregroundColor(.primary)
                     .font(.callout)
             } else {
                 Label("Se descargará al instalar", systemImage: "arrow.down.to.line")
@@ -357,7 +357,7 @@ struct AboutTab: View {
         VStack(spacing: 16) {
             Image(systemName: "waveform.circle.fill")
                 .font(.system(size: 64))
-                .foregroundStyle(.blue.gradient)
+                .foregroundStyle(.primary)
 
             Text("Speex")
                 .font(.largeTitle)

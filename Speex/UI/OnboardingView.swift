@@ -76,7 +76,7 @@ struct OnboardingView: View {
             HStack(spacing: 10) {
                 Image(systemName: "waveform.circle.fill")
                     .font(.system(size: 28))
-                    .foregroundStyle(.blue.gradient)
+                    .foregroundStyle(.primary)
                 Text("Configuración de Speex")
                     .font(.title2)
                     .fontWeight(.semibold)
@@ -89,7 +89,7 @@ struct OnboardingView: View {
             HStack(spacing: 8) {
                 ForEach(0..<2, id: \.self) { step in
                     Capsule()
-                        .fill(step <= currentStep ? Color.accentColor : Color.secondary.opacity(0.25))
+                        .fill(step <= currentStep ? Color.primary : Color.secondary.opacity(0.25))
                         .frame(height: 6)
                 }
             }
@@ -329,7 +329,7 @@ struct OnboardingView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "waveform.circle.fill")
                             .font(.system(size: 18))
-                            .foregroundStyle(.blue.gradient)
+                            .foregroundStyle(.primary)
                         Text("Speex")
                             .font(.system(size: 11, weight: .medium))
                         Spacer()
@@ -343,11 +343,11 @@ struct OnboardingView: View {
                     .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.accentColor.opacity(0.08))
+                            .fill(Color.primary.opacity(0.08))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.accentColor.opacity(0.4), lineWidth: 1.5)
+                            .stroke(Color.primary.opacity(0.4), lineWidth: 1.5)
                     )
                 }
                 .padding(12)
@@ -363,10 +363,10 @@ struct OnboardingView: View {
             // Instruction below the mock
             HStack(spacing: 6) {
                 Image(systemName: "arrow.up.circle.fill")
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.primary)
                 Text("Activa el interruptor de Speex")
                     .font(.callout)
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.primary)
             }
 
             Button(focusedPermissionIsMicrophone ? "Abrir en Ajustes" : "Abrir en Ajustes") {
@@ -442,7 +442,7 @@ struct OnboardingView: View {
                     icon: "bolt.fill",
                     title: "Speex Turbo",
                     badge: "Recomendado",
-                    badgeColor: .blue,
+                    badgeColor: .primary,
                     features: ["Rápido y muy preciso", "Funciona sin conexión", "Descarga ligera (~632 MB)"],
                     isSelected: appState.selectedModel == AppState.defaultBundledModelID,
                     isDisabled: appState.modelPhase.isActive,
@@ -597,7 +597,7 @@ struct OnboardingView: View {
                         .fontWeight(.medium)
                 }
                 ProgressView(value: progress)
-                    .tint(.blue)
+                    .tint(.primary)
                 Text(L10n.f("onboarding.model.downloading_percent", progress * 100))
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -605,11 +605,11 @@ struct OnboardingView: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.blue.opacity(0.05))
+                    .fill(Color.primary.opacity(0.04))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.blue.opacity(0.15), lineWidth: 1)
+                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
             )
         case .loading(let step):
             HStack(spacing: 8) {
@@ -639,7 +639,7 @@ struct OnboardingView: View {
         case .idle:
             if appState.isModelInstalledLocally(appState.selectedModel) {
                 Label("Modelo descargado — listo para instalar", systemImage: "arrow.down.circle.fill")
-                    .foregroundColor(.blue)
+                    .foregroundColor(.primary)
                     .font(.callout)
             } else {
                 Label("Se descargará al instalar", systemImage: "arrow.down.to.line")

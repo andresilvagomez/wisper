@@ -86,7 +86,7 @@ struct MenuBarView: View {
         if appState.isRecording { return .red }
         switch appState.modelPhase {
         case .ready: return .green
-        case .downloading, .loading: return .blue
+        case .downloading, .loading: return .secondary
         case .error: return .orange
         case .idle: return .gray
         }
