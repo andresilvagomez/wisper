@@ -5,7 +5,7 @@ import Foundation
 final class TextInjector: @unchecked Sendable {
     private let pasteQueue = DispatchQueue(label: "com.speex.textinjector", qos: .userInteractive)
     private let activationDelayMicros: useconds_t = 350_000
-    private let pasteRetryCount = 2
+    private let pasteRetryCount = 1
 
     /// The app that was active when recording started — paste goes here.
     private var targetApp: NSRunningApplication?
@@ -165,12 +165,27 @@ final class TextInjector: @unchecked Sendable {
             text as CFTypeRef
         )
 
-        guard setStatus == .success else {
-            print("[Speex] AX insert failed: \(setStatus.rawValue)")
-            return false
+        if setStatus == .success {
+            return true
         }
 
-        return true
+        // Some apps report failure even though the text was inserted.
+        // Read back the value to avoid a false-negative → double paste.
+        var valueRef: CFTypeRef?
+        let readStatus = AXUIElementCopyAttributeValue(
+            focusedElement,
+            kAXValueAttribute as CFString,
+            &valueRef
+        )
+        if readStatus == .success,
+           let currentValue = valueRef as? String,
+           currentValue.hasSuffix(text) {
+            print("[Speex] AX insert reported failure (\(setStatus.rawValue)) but text was inserted — skipping fallback")
+            return true
+        }
+
+        print("[Speex] AX insert failed: \(setStatus.rawValue)")
+        return false
     }
 
     // MARK: - Clipboard + Cmd+V
