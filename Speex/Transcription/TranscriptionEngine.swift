@@ -249,6 +249,7 @@ final class TranscriptionEngine: @unchecked Sendable {
             do {
                 let folder = try await WhisperKit.download(
                     variant: modelName,
+                    downloadBase: Self.modelsBaseURL,
                     progressCallback: { progress in
                         let fraction = max(0, min(1, progress.fractionCompleted))
                         onPhaseChange(.downloading(progress: fraction))
@@ -614,15 +615,46 @@ final class TranscriptionEngine: @unchecked Sendable {
         return candidate.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    static let modelsBaseURL: URL = {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
+        let base = appSupport
+            .appendingPathComponent("Speex", isDirectory: true)
+            .appendingPathComponent("Models", isDirectory: true)
+        try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        return base
+    }()
+
     static func localModelFolder(for modelName: String) -> URL {
-        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSHomeDirectory())
-        return documentsURL
+        modelsBaseURL
             .appendingPathComponent("huggingface", isDirectory: true)
             .appendingPathComponent("models", isDirectory: true)
             .appendingPathComponent("argmaxinc", isDirectory: true)
             .appendingPathComponent("whisperkit-coreml", isDirectory: true)
             .appendingPathComponent(modelName, isDirectory: true)
+    }
+
+    static func migrateModelsFromDocumentsIfNeeded() {
+        let fm = FileManager.default
+        guard let documentsURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let oldRoot = documentsURL.appendingPathComponent("huggingface", isDirectory: true)
+        guard fm.fileExists(atPath: oldRoot.path) else { return }
+
+        let newRoot = modelsBaseURL.appendingPathComponent("huggingface", isDirectory: true)
+        if !fm.fileExists(atPath: newRoot.path) {
+            do {
+                try fm.moveItem(at: oldRoot, to: newRoot)
+                print("[Speex] Migrated models from Documents to Application Support")
+            } catch {
+                print("[Speex] Migration failed, copying instead: \(error)")
+                try? fm.copyItem(at: oldRoot, to: newRoot)
+                try? fm.removeItem(at: oldRoot)
+            }
+        } else {
+            // New location already has data, just clean up old
+            try? fm.removeItem(at: oldRoot)
+            print("[Speex] Removed old Documents/huggingface (already migrated)")
+        }
     }
 
     static func isModelDownloaded(_ modelName: String) -> Bool {

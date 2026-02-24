@@ -250,6 +250,7 @@ final class AppState: ObservableObject {
     ]
 
     init() {
+        TranscriptionEngine.migrateModelsFromDocumentsIfNeeded()
         setupEngines()
         normalizeSelectedModelIfNeeded()
         applyBestDownloadedModelAsDefaultIfNeeded()

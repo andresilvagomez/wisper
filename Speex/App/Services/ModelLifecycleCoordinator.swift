@@ -93,11 +93,7 @@ final class ModelLifecycleCoordinator {
         availableModelIDs: [String],
         fileManager: FileManager = .default
     ) -> Set<String> {
-        guard let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            return []
-        }
-
-        let modelsRoot = documentsURL
+        let modelsRoot = TranscriptionEngine.modelsBaseURL
             .appendingPathComponent("huggingface", isDirectory: true)
             .appendingPathComponent("models", isDirectory: true)
             .appendingPathComponent("argmaxinc", isDirectory: true)

@@ -283,7 +283,16 @@ enum TextPostProcessor {
     }
 
     private static func normalizePunctuationSpacing(in text: String) -> String {
-        var value = text.replacingOccurrences(
+        var value = text
+
+        // Collapse scattered dots: ". ..", ".. .", ". . .", "..." etc. → single "."
+        value = value.replacingOccurrences(
+            of: #"(?:\.\s*)(?:\.[\s.]*){1,}"#,
+            with: ".",
+            options: .regularExpression
+        )
+
+        value = value.replacingOccurrences(
             of: #"\s+([,.;:!?])"#,
             with: "$1",
             options: .regularExpression
