@@ -24,6 +24,7 @@
 		461EF3BF3E9768A3C4BE9518 /* TranscriptionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4CAE3EF04BA8EB94B7DA210 /* TranscriptionEngine.swift */; };
 		549F4623C82AF50E4FD4DBA7 /* TextInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = D118DF708280E0D0E1E7BB61 /* TextInjector.swift */; };
 		579FA067840C46D6D58B5DEA /* TranscriptionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BF01DF2CE87DEA8B542E12 /* TranscriptionCoordinator.swift */; };
+		5C4F98F3A5A92BD49272FFF1 /* SystemAudioMuter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DD2DF244398076470C8265 /* SystemAudioMuter.swift */; };
 		5F0CA0F2CCA71EB2E7A61E0F /* RecordingSessionCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E2EBD46D2E3C84448E6E7B4 /* RecordingSessionCoordinatorTests.swift */; };
 		5FC857F9DA2F9270A211E800 /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1BC01EBEB9E82AA9BE7D35B /* AudioEngine.swift */; };
 		63365C72DD5A32AAFCB19445 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 3AE83E72ED6514AB84264D55 /* Sparkle */; };
@@ -76,6 +77,7 @@
 		12AA2363C114A2A179325F10 /* RecordingSessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingSessionCoordinator.swift; sourceTree = "<group>"; };
 		24F6128F2EE414687E15D7A5 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		27BF01DF2CE87DEA8B542E12 /* TranscriptionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionCoordinator.swift; sourceTree = "<group>"; };
+		27DD2DF244398076470C8265 /* SystemAudioMuter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioMuter.swift; sourceTree = "<group>"; };
 		2A9C3BDF4E9C0D46DF6F9DFF /* OnboardingStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateMachineTests.swift; sourceTree = "<group>"; };
 		2BB7D77697D34EC678391C29 /* pt */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pt; path = pt.lproj/Localizable.strings; sourceTree = "<group>"; };
 		2D11FE489288FEDB51FB34EB /* Speex.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Speex.entitlements; sourceTree = "<group>"; };
@@ -220,6 +222,7 @@
 				D4C7A59ABE41E878F15BFC98 /* ModelLifecycleCoordinator.swift */,
 				FAED9FB29989C0B425D390B4 /* PermissionService.swift */,
 				12AA2363C114A2A179325F10 /* RecordingSessionCoordinator.swift */,
+				27DD2DF244398076470C8265 /* SystemAudioMuter.swift */,
 				ED1D2DEE2AD98C944B74292E /* UpdateService.swift */,
 			);
 			path = Services;
@@ -449,6 +452,7 @@
 				05A4CAE49124BAD4C9A37E16 /* RecordingSessionCoordinator.swift in Sources */,
 				B6F30EC5AEFBA3CCD82F42D1 /* SettingsView.swift in Sources */,
 				F5C8E7CAA2C626E610BFAB4B /* SpeexApp.swift in Sources */,
+				5C4F98F3A5A92BD49272FFF1 /* SystemAudioMuter.swift in Sources */,
 				549F4623C82AF50E4FD4DBA7 /* TextInjector.swift in Sources */,
 				E3EF11A4C5D946D903C2D192 /* TextPostProcessor.swift in Sources */,
 				579FA067840C46D6D58B5DEA /* TranscriptionCoordinator.swift in Sources */,
@@ -630,14 +634,14 @@
 				CODE_SIGN_IDENTITY = DD9A14A7890D716B95CFACB96F0EBDA356EE18CB;
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 7NBJJ9P97F;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = NO;
 				INFOPLIST_FILE = Speex/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.andresilvagomez.speex;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
@@ -652,14 +656,14 @@
 				CODE_SIGN_IDENTITY = DD9A14A7890D716B95CFACB96F0EBDA356EE18CB;
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 7NBJJ9P97F;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = NO;
 				INFOPLIST_FILE = Speex/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.andresilvagomez.speex;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;

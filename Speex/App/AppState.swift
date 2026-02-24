@@ -98,6 +98,7 @@ final class AppState: ObservableObject {
     @AppStorage("whisperModeEnabled") var whisperModeEnabled = false
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding = false
     @AppStorage("launchAtLogin") var launchAtLogin = false
+    @AppStorage("muteOtherAppsWhileRecording") var muteOtherAppsWhileRecording = false
     @AppStorage("selectedInputDeviceUID") var selectedInputDeviceUID = ""
     @Published private(set) var onboardingPresentationToken = UUID()
     private var hasRunInitialPermissionAudit = false
@@ -107,6 +108,7 @@ final class AppState: ObservableObject {
     private let recordingSessionCoordinator = RecordingSessionCoordinator()
     private let audioInputSelectionCoordinator = AudioInputSelectionCoordinator()
     let updateService = UpdateService()
+    let systemAudioMuter = SystemAudioMuter()
 
     // MARK: - Engines
 
@@ -300,6 +302,10 @@ final class AppState: ObservableObject {
                             sessionStartedAt: self.recordingSessionCoordinator.recordingStartedAt
                         )
                     }
+
+                    // Skip injection if recording already stopped — finalize() handles the rest.
+                    // We still update confirmedText/partialText above so finalize computes the correct delta.
+                    guard self.isRecording else { return }
 
                     switch result.action {
                     case .none:
@@ -556,6 +562,9 @@ final class AppState: ObservableObject {
         }
 
         isRecording = true
+        if muteOtherAppsWhileRecording {
+            systemAudioMuter.muteSystemAudio()
+        }
         modelLifecycleCoordinator.clearQueuedRecordingStart()
         overlayController.show(appState: self)
         print("[Speex] ▶ Recording started (mode: \(recordingMode.rawValue), transcription: \(transcriptionMode.rawValue))")
@@ -568,6 +577,7 @@ final class AppState: ObservableObject {
         )
         guard case let .stopped(shouldFinalizeOnRelease) = stopEvaluation else { return }
         isRecording = false
+        systemAudioMuter.unmuteSystemAudio()
         audioLevel = 0
         overlayController.hide()
         transcriptionEngine?.prepareForFinalize()
@@ -649,6 +659,7 @@ final class AppState: ObservableObject {
     }
 
     func cleanup() {
+        systemAudioMuter.forceUnmute()
         if isRecording {
             audioEngine?.stopCapture()
             isRecording = false

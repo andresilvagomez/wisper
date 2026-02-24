@@ -14,9 +14,14 @@ final class TextInjector: @unchecked Sendable {
     private(set) var hasAccessibility: Bool = false
 
     func setup() {
-        let key = "AXTrustedCheckOptionPrompt" as CFString
-        let options = [key: true] as CFDictionary
-        hasAccessibility = AXIsProcessTrustedWithOptions(options)
+        // Check without prompting first — only show the system dialog if not yet granted.
+        if AXIsProcessTrusted() {
+            hasAccessibility = true
+        } else {
+            let key = "AXTrustedCheckOptionPrompt" as CFString
+            let options = [key: true] as CFDictionary
+            hasAccessibility = AXIsProcessTrustedWithOptions(options)
+        }
         print("[Speex] TextInjector: accessibility = \(hasAccessibility)")
     }
 

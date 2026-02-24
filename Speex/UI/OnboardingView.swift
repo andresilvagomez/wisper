@@ -204,6 +204,11 @@ struct OnboardingView: View {
                 }
             )
 
+            Toggle(L10n.t("settings.mute_other_apps"), isOn: $appState.muteOtherAppsWhileRecording)
+                .tint(.primary)
+                .font(.callout)
+                .padding(.top, 4)
+
             if onboardingMachine.canContinueFromPermissions {
                 Label("Todo listo — pulsa Continuar", systemImage: "checkmark.circle.fill")
                     .foregroundColor(.green)

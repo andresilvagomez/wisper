@@ -118,6 +118,7 @@ No audio is sent to the cloud.";
 "settings.model.idle" = "No activity";
 "settings.model.info" = "Turbo is included by default. If you install Super Pro, both models will use local disk space.";
 "settings.whisper_mode" = "Quiet voice mode";
+"settings.mute_other_apps" = "Mute other apps while recording";
 "settings.text_polish" = "Text polish";
 "text.polish.off" = "Off (literal)";
 "text.polish.basic" = "Basic (punctuation + case)";

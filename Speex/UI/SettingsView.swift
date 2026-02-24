@@ -64,6 +64,8 @@ struct GeneralSettingsTab: View {
 
                 Toggle(L10n.t("settings.whisper_mode"), isOn: $appState.whisperModeEnabled)
 
+                Toggle(L10n.t("settings.mute_other_apps"), isOn: $appState.muteOtherAppsWhileRecording)
+
                 if appState.hasMultipleInputDevices {
                     Picker(L10n.t("Input source"), selection: $appState.selectedInputDeviceUID) {
                         ForEach(appState.availableInputDevices) { device in
@@ -93,6 +95,7 @@ struct GeneralSettingsTab: View {
             }
         }
         .formStyle(.grouped)
+        .tint(.primary)
         .padding()
         .onAppear {
             appState.refreshInputDevices()
