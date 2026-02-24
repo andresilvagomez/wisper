@@ -44,13 +44,13 @@ struct GeneralSettingsTab: View {
         Form {
             Section(L10n.t("Language")) {
                 Picker(L10n.t("Interface language"), selection: $appState.interfaceLanguage) {
-                    ForEach(AppState.availableInterfaceLanguages, id: \.code) { lang in
+                    ForEach(LanguageCatalog.availableInterfaceLanguages, id: \.code) { lang in
                         Text(lang.name).tag(lang.code)
                     }
                 }
 
                 Picker(L10n.t("Transcription language"), selection: $appState.selectedLanguage) {
-                    ForEach(AppState.availableLanguages, id: \.code) { lang in
+                    ForEach(LanguageCatalog.availableLanguages, id: \.code) { lang in
                         Text(lang.name).tag(lang.code)
                     }
                 }
@@ -149,12 +149,12 @@ struct ModelSettingsTab: View {
                     badge: "Recomendado",
                     badgeColor: .primary,
                     features: ["Rápido y muy preciso", "Funciona sin conexión", "Descarga ligera (~632 MB)"],
-                    isSelected: appState.selectedModel == AppState.defaultBundledModelID,
+                    isSelected: appState.selectedModel == ModelManager.defaultBundledModelID,
                     isDisabled: appState.modelPhase.isActive || appState.isRecording,
-                    isInstalled: appState.isModelInstalledLocally(AppState.defaultBundledModelID),
-                    isActive: appState.selectedModel == AppState.defaultBundledModelID && appState.modelPhase.isReady
+                    isInstalled: appState.isModelInstalledLocally(ModelManager.defaultBundledModelID),
+                    isActive: appState.selectedModel == ModelManager.defaultBundledModelID && appState.modelPhase.isReady
                 ) {
-                    appState.selectedModel = AppState.defaultBundledModelID
+                    appState.selectedModel = ModelManager.defaultBundledModelID
                 }
 
                 settingsModelCard(
@@ -163,12 +163,12 @@ struct ModelSettingsTab: View {
                     badge: "Máxima precisión",
                     badgeColor: .purple,
                     features: ["Máxima precisión por palabra", "Funciona sin conexión", "Para dictados extensos (~1.5 GB)"],
-                    isSelected: appState.selectedModel == AppState.optionalSuperModelID,
+                    isSelected: appState.selectedModel == ModelManager.optionalSuperModelID,
                     isDisabled: appState.modelPhase.isActive || appState.isRecording,
-                    isInstalled: appState.isModelInstalledLocally(AppState.optionalSuperModelID),
-                    isActive: appState.selectedModel == AppState.optionalSuperModelID && appState.modelPhase.isReady
+                    isInstalled: appState.isModelInstalledLocally(ModelManager.optionalSuperModelID),
+                    isActive: appState.selectedModel == ModelManager.optionalSuperModelID && appState.modelPhase.isReady
                 ) {
-                    appState.selectedModel = AppState.optionalSuperModelID
+                    appState.selectedModel = ModelManager.optionalSuperModelID
                 }
 
                 settingsModelCard(

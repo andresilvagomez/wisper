@@ -449,11 +449,11 @@ struct OnboardingView: View {
                     badge: "Recomendado",
                     badgeColor: .primary,
                     features: ["Rápido y muy preciso", "Funciona sin conexión", "Descarga ligera (~632 MB)"],
-                    isSelected: appState.selectedModel == AppState.defaultBundledModelID,
+                    isSelected: appState.selectedModel == ModelManager.defaultBundledModelID,
                     isDisabled: appState.modelPhase.isActive,
-                    isInstalled: appState.isModelInstalledLocally(AppState.defaultBundledModelID)
+                    isInstalled: appState.isModelInstalledLocally(ModelManager.defaultBundledModelID)
                 ) {
-                    appState.selectedModel = AppState.defaultBundledModelID
+                    appState.selectedModel = ModelManager.defaultBundledModelID
                 }
 
                 modelOptionCard(
@@ -462,11 +462,11 @@ struct OnboardingView: View {
                     badge: "Máxima precisión",
                     badgeColor: .purple,
                     features: ["Máxima precisión por palabra", "Funciona sin conexión", "Para dictados extensos (~1.5 GB)"],
-                    isSelected: appState.selectedModel == AppState.optionalSuperModelID,
+                    isSelected: appState.selectedModel == ModelManager.optionalSuperModelID,
                     isDisabled: appState.modelPhase.isActive,
-                    isInstalled: appState.isModelInstalledLocally(AppState.optionalSuperModelID)
+                    isInstalled: appState.isModelInstalledLocally(ModelManager.optionalSuperModelID)
                 ) {
-                    appState.selectedModel = AppState.optionalSuperModelID
+                    appState.selectedModel = ModelManager.optionalSuperModelID
                 }
 
                 modelOptionCard(
@@ -489,7 +489,7 @@ struct OnboardingView: View {
                         .foregroundColor(.secondary)
                         .font(.callout)
                     Picker("Idioma", selection: $appState.selectedLanguage) {
-                        ForEach(AppState.availableLanguages, id: \.code) { lang in
+                        ForEach(LanguageCatalog.availableLanguages, id: \.code) { lang in
                             Text(lang.name).tag(lang.code)
                         }
                     }

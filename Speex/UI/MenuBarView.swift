@@ -181,7 +181,7 @@ struct MenuBarView: View {
 
     private var languageSelector: some View {
         Picker(selection: $appState.selectedLanguage) {
-            ForEach(AppState.availableLanguages, id: \.code) { lang in
+            ForEach(LanguageCatalog.availableLanguages, id: \.code) { lang in
                 Text(lang.name).tag(lang.code)
             }
         } label: {

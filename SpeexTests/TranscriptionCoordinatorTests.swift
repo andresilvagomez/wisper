@@ -88,6 +88,77 @@ struct TranscriptionCoordinatorTests {
         #expect(text == "Hola mundo.")
     }
 
+    @Test("Streaming chunk with same confirmedText still appends new text")
+    func streamingChunkAppendsToConfirmed() {
+        let coordinator = TranscriptionCoordinator()
+        let start = Date(timeIntervalSince1970: 7_000)
+
+        // First chunk
+        let first = coordinator.consumeFinal(
+            text: "hola mundo",
+            mode: .streaming,
+            confirmedText: "",
+            recordingStartedAt: start,
+            chunkStartedAt: start,
+            now: start.addingTimeInterval(0.05)
+        )
+
+        // Second chunk: new text appended to the confirmed
+        let second = coordinator.consumeFinal(
+            text: "hola mundo",
+            mode: .streaming,
+            confirmedText: first.confirmedText,
+            recordingStartedAt: start,
+            chunkStartedAt: start.addingTimeInterval(0.1),
+            now: start.addingTimeInterval(0.15)
+        )
+
+        // Coordinator always appends — dedup of late chunks happens
+        // at AppState level (guard isRecording) not here.
+        #expect(second.confirmedText.count > first.confirmedText.count,
+                "Second chunk should extend confirmedText")
+
+        switch second.action {
+        case let .typeText(text, _):
+            #expect(text.isEmpty == false, "Delta should contain the new appended text")
+        default:
+            Issue.record("Expected .typeText action for streaming chunk")
+        }
+    }
+
+    @Test("Streaming chunks produce incremental deltas")
+    func streamingIncrementalDeltas() {
+        let coordinator = TranscriptionCoordinator()
+        let start = Date(timeIntervalSince1970: 8_000)
+
+        let first = coordinator.consumeFinal(
+            text: "buenos días",
+            mode: .streaming,
+            confirmedText: "",
+            recordingStartedAt: start,
+            chunkStartedAt: start,
+            now: start.addingTimeInterval(0.03)
+        )
+
+        let second = coordinator.consumeFinal(
+            text: "cómo estás",
+            mode: .streaming,
+            confirmedText: first.confirmedText,
+            recordingStartedAt: start,
+            chunkStartedAt: start.addingTimeInterval(0.2),
+            now: start.addingTimeInterval(0.23)
+        )
+
+        // Second delta should only contain the NEW text, not repeat the first chunk
+        switch second.action {
+        case let .typeText(text, _):
+            #expect(text.lowercased().contains("buenos") == false,
+                    "Second delta should not repeat first chunk text")
+        default:
+            Issue.record("Expected .typeText action for second streaming chunk")
+        }
+    }
+
     @Test("No inserta espacio antes de puntuación entre bloques")
     func noSpaceBeforePunctuationAcrossChunks() {
         let coordinator = TranscriptionCoordinator()
