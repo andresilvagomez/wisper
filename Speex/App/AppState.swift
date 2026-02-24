@@ -106,6 +106,7 @@ final class AppState: ObservableObject {
     private let modelLifecycleCoordinator = ModelLifecycleCoordinator()
     private let recordingSessionCoordinator = RecordingSessionCoordinator()
     private let audioInputSelectionCoordinator = AudioInputSelectionCoordinator()
+    let updateService = UpdateService()
 
     // MARK: - Engines
 

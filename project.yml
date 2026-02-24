@@ -13,6 +13,9 @@ packages:
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     from: "2.2.0"
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.6.0"
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
     from: "11.0.0"
@@ -49,6 +52,7 @@ targets:
         product: FirebaseCore
       - package: Firebase
         product: FirebaseCrashlytics
+      - package: Sparkle
     entitlements:
       path: Speex/Resources/Speex.entitlements
       properties:

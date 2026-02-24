@@ -20,6 +20,7 @@ struct SettingsView: View {
                 }
 
             AboutTab()
+                .environmentObject(appState)
                 .tabItem {
                     Label(L10n.t("About"), systemImage: "info.circle")
                 }
@@ -348,6 +349,8 @@ struct ModelSettingsTab: View {
 // MARK: - About
 
 struct AboutTab: View {
+    @EnvironmentObject var appState: AppState
+
     private var appVersionText: String {
         let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.1"
         return "v\(short)"
@@ -369,6 +372,11 @@ struct AboutTab: View {
             Text(appVersionText)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+
+            Button(L10n.t("settings.check_for_updates")) {
+                appState.updateService.checkForUpdates()
+            }
+            .disabled(!appState.updateService.canCheckForUpdates)
 
             Spacer()
         }

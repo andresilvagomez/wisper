@@ -26,6 +26,7 @@
 		579FA067840C46D6D58B5DEA /* TranscriptionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BF01DF2CE87DEA8B542E12 /* TranscriptionCoordinator.swift */; };
 		5F0CA0F2CCA71EB2E7A61E0F /* RecordingSessionCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E2EBD46D2E3C84448E6E7B4 /* RecordingSessionCoordinatorTests.swift */; };
 		5FC857F9DA2F9270A211E800 /* AudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1BC01EBEB9E82AA9BE7D35B /* AudioEngine.swift */; };
+		63365C72DD5A32AAFCB19445 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 3AE83E72ED6514AB84264D55 /* Sparkle */; };
 		64E94E0A7E64247505570B4F /* LanguageSupportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72FFDBB0C1C818926614F85B /* LanguageSupportTests.swift */; };
 		6560F4F5E2D749E82CBA44D9 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F6128F2EE414687E15D7A5 /* AppState.swift */; };
 		680950820799E3FD05EA6335 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4135D9C5B5F2DEBEECB14C57 /* GoogleService-Info.plist */; };
@@ -39,6 +40,7 @@
 		9A7B5061A8F99BE26938C3CF /* OverlayPositioningTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D19F6A352E528BD2BF9CBE /* OverlayPositioningTests.swift */; };
 		9B4931CA014EFBDE751CD00C /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C733304BE6D17617389CB5 /* HotkeyManager.swift */; };
 		A418BE2BE9CF538062613E4B /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E862EC7E2B20A7F0090FB74 /* OnboardingView.swift */; };
+		A57AC7DC4295BD79D38912F0 /* UpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED1D2DEE2AD98C944B74292E /* UpdateService.swift */; };
 		ACFCFB2D027EDDE6A63E6271 /* ModelPhase.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF3EB9B33EC38B461E93DDE7 /* ModelPhase.swift */; };
 		AF3F551109F9D90EEF80D935 /* PermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAED9FB29989C0B425D390B4 /* PermissionService.swift */; };
 		AF51911FC5BAE939C65077AC /* AudioEngineTuningTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D9FC12205F7F907BC361DE2 /* AudioEngineTuningTests.swift */; };
@@ -111,6 +113,7 @@
 		D4CAE3EF04BA8EB94B7DA210 /* TranscriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionEngine.swift; sourceTree = "<group>"; };
 		DF3EB9B33EC38B461E93DDE7 /* ModelPhase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelPhase.swift; sourceTree = "<group>"; };
 		E6D19F6A352E528BD2BF9CBE /* OverlayPositioningTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayPositioningTests.swift; sourceTree = "<group>"; };
+		ED1D2DEE2AD98C944B74292E /* UpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateService.swift; sourceTree = "<group>"; };
 		EE9520CEBCC7B66F1220EFA2 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		EED046667A6C844EA628CECF /* DictationEditingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationEditingServiceTests.swift; sourceTree = "<group>"; };
 		F08C04DF4D336FC9E56D25A9 /* OnboardingStateMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateMachine.swift; sourceTree = "<group>"; };
@@ -127,6 +130,7 @@
 				8BE58DC4AB0DAECAC6B64B3B /* KeyboardShortcuts in Frameworks */,
 				252D6A436D06B073D15092B1 /* FirebaseCore in Frameworks */,
 				0D85D47E9B5F4BE075033D37 /* FirebaseCrashlytics in Frameworks */,
+				63365C72DD5A32AAFCB19445 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -216,6 +220,7 @@
 				D4C7A59ABE41E878F15BFC98 /* ModelLifecycleCoordinator.swift */,
 				FAED9FB29989C0B425D390B4 /* PermissionService.swift */,
 				12AA2363C114A2A179325F10 /* RecordingSessionCoordinator.swift */,
+				ED1D2DEE2AD98C944B74292E /* UpdateService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -313,6 +318,7 @@
 				1C42FB1C9A772E3F20669E37 /* KeyboardShortcuts */,
 				AFF3851FBF6E43773C9D4E10 /* FirebaseCore */,
 				8E34F3C2465B8723F53BFC12 /* FirebaseCrashlytics */,
+				3AE83E72ED6514AB84264D55 /* Sparkle */,
 			);
 			productName = Speex;
 			productReference = 0F1D8F549CE513E1EE9B49F4 /* Speex.app */;
@@ -350,6 +356,7 @@
 			packageReferences = (
 				A40CE3BA33E3521CF4DD3544 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				6C03F9CDCD6B60B4B64A96AB /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+				18EBAA8EA6E5CC7FCBAF034D /* XCRemoteSwiftPackageReference "Sparkle" */,
 				8AAF7BE109A68CAD928F0C9A /* XCRemoteSwiftPackageReference "WhisperKit" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -447,6 +454,7 @@
 				579FA067840C46D6D58B5DEA /* TranscriptionCoordinator.swift in Sources */,
 				461EF3BF3E9768A3C4BE9518 /* TranscriptionEngine.swift in Sources */,
 				20B34BCAB9D62D469F820DB2 /* TranscriptionOverlay.swift in Sources */,
+				A57AC7DC4295BD79D38912F0 /* UpdateService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -622,14 +630,14 @@
 				CODE_SIGN_IDENTITY = DD9A14A7890D716B95CFACB96F0EBDA356EE18CB;
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7NBJJ9P97F;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = NO;
 				INFOPLIST_FILE = Speex/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.0.2;
+				MARKETING_VERSION = 0.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.andresilvagomez.speex;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
@@ -644,14 +652,14 @@
 				CODE_SIGN_IDENTITY = DD9A14A7890D716B95CFACB96F0EBDA356EE18CB;
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7NBJJ9P97F;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = NO;
 				INFOPLIST_FILE = Speex/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.0.2;
+				MARKETING_VERSION = 0.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.andresilvagomez.speex;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
@@ -710,6 +718,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		18EBAA8EA6E5CC7FCBAF034D /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
 		6C03F9CDCD6B60B4B64A96AB /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
@@ -741,6 +757,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 6C03F9CDCD6B60B4B64A96AB /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
 			productName = KeyboardShortcuts;
+		};
+		3AE83E72ED6514AB84264D55 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 18EBAA8EA6E5CC7FCBAF034D /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 		683F4E98ABFEEC09ECD657D3 /* WhisperKit */ = {
 			isa = XCSwiftPackageProductDependency;
