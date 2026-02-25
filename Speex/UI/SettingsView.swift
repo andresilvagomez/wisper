@@ -87,6 +87,23 @@ struct GeneralSettingsTab: View {
                 }
             }
 
+            Section(L10n.t("settings.ai_section")) {
+                Toggle(L10n.t("settings.ai_auto_edit"), isOn: $appState.aiAutoEditEnabled)
+                    .disabled(appState.openaiAPIKey.isEmpty)
+
+                if appState.aiAutoEditEnabled && appState.transcriptionMode == .streaming {
+                    Text(L10n.t("settings.ai_auto_edit.streaming_note"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                if appState.openaiAPIKey.isEmpty {
+                    Text(L10n.t("settings.ai_auto_edit.needs_api_key"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
             Section(L10n.t("System")) {
                 Toggle(L10n.t("Launch at login"), isOn: $appState.launchAtLogin)
                     .onChange(of: appState.launchAtLogin) { _, newValue in

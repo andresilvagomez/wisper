@@ -131,3 +131,7 @@ Sin enviar audio a la nube.";
 "cloud.phase.verifying" = "Verificando API key...";
 "cloud.error.no_api_key" = "API key requerida";
 "cloud.error.invalid_api_key" = "API key inválida";
+"settings.ai_section" = "Inteligencia artificial";
+"settings.ai_auto_edit" = "Edición automática con IA";
+"settings.ai_auto_edit.streaming_note" = "En modo \"En vivo\", el texto mejorado se copia al portapapeles al terminar.";
+"settings.ai_auto_edit.needs_api_key" = "Configura un API key de OpenAI en la pestaña Modelo para activar esta opción.";

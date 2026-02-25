@@ -19,6 +19,7 @@
 		20B34BCAB9D62D469F820DB2 /* TranscriptionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6162DD7255EA5C53361B4D17 /* TranscriptionOverlay.swift */; };
 		23F57D50F32303E666F7C196 /* AudioInputSelectionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E7357B9D2B5E5ADE7F1A82 /* AudioInputSelectionCoordinator.swift */; };
 		252D6A436D06B073D15092B1 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = AFF3851FBF6E43773C9D4E10 /* FirebaseCore */; };
+		2912CE6516670ED5718FDABE /* OpenAITextEnhancer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B925DC9C3A83E53C779AF5 /* OpenAITextEnhancer.swift */; };
 		393C6E05D3B50C81B07DD29D /* AudioInputSelectionCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFAAC608B612CF3D2EA29DB4 /* AudioInputSelectionCoordinatorTests.swift */; };
 		3A085761ECF9A391ABAFDAA2 /* RecordingOrchestratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E77772DCF3420C3CC295F2BC /* RecordingOrchestratorTests.swift */; };
 		3D1F7C4CCA6FD354BEE7496C /* TextPostProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A90B75A12A811330B851BCE /* TextPostProcessorTests.swift */; };
@@ -65,6 +66,7 @@
 		ED0C0C6DAF9D9F7F5CE85CB7 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE4FBAECF258E675EA4B9DEF /* MenuBarView.swift */; };
 		F5C8E7CAA2C626E610BFAB4B /* SpeexApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A2C9613CD44D1885241029D /* SpeexApp.swift */; };
 		F7E0AC84716E7F0439656DE7 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D004EAAA1ED8D04DA07B34D /* L10n.swift */; };
+		FBD51D3971BE030B43A7B014 /* AITextEnhancerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0ED0B0D13D33EE4673C2EE6 /* AITextEnhancerProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,6 +94,7 @@
 		2D11FE489288FEDB51FB34EB /* Speex.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Speex.entitlements; sourceTree = "<group>"; };
 		2D9FC12205F7F907BC361DE2 /* AudioEngineTuningTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngineTuningTests.swift; sourceTree = "<group>"; };
 		3088352DF974158D5BBA996D /* TranscriptionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionProvider.swift; sourceTree = "<group>"; };
+		30B925DC9C3A83E53C779AF5 /* OpenAITextEnhancer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAITextEnhancer.swift; sourceTree = "<group>"; };
 		40C8E1936BDA294444645A8B /* PermissionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionServiceTests.swift; sourceTree = "<group>"; };
 		4135D9C5B5F2DEBEECB14C57 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		4FFA671003DE026F0C36E968 /* ModelLifecycleCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelLifecycleCoordinatorTests.swift; sourceTree = "<group>"; };
@@ -119,6 +122,7 @@
 		91E2FEA3705F5AA685263B29 /* TranscriptionCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionCoordinatorTests.swift; sourceTree = "<group>"; };
 		A1CD8047C34A74BE9E38EC67 /* DictationEditingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationEditingService.swift; sourceTree = "<group>"; };
 		AE4FBAECF258E675EA4B9DEF /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		B0ED0B0D13D33EE4673C2EE6 /* AITextEnhancerProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITextEnhancerProvider.swift; sourceTree = "<group>"; };
 		B199425BBDE80E3AF7FF8A57 /* AudioInputDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioInputDevice.swift; sourceTree = "<group>"; };
 		B1A6464F2DDD7FBE420C472E /* LanguageCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageCatalog.swift; sourceTree = "<group>"; };
 		B1BC01EBEB9E82AA9BE7D35B /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
@@ -227,6 +231,15 @@
 			path = UI;
 			sourceTree = "<group>";
 		};
+		69E587AABB9AE50E355D23BC /* AI */ = {
+			isa = PBXGroup;
+			children = (
+				B0ED0B0D13D33EE4673C2EE6 /* AITextEnhancerProvider.swift */,
+				30B925DC9C3A83E53C779AF5 /* OpenAITextEnhancer.swift */,
+			);
+			path = AI;
+			sourceTree = "<group>";
+		};
 		7117540B63F066CDE9B47FD5 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -257,6 +270,7 @@
 		A04DAEDC119A2DC823841FB4 /* Speex */ = {
 			isa = PBXGroup;
 			children = (
+				69E587AABB9AE50E355D23BC /* AI */,
 				B8ED20539EE28B400C43BDB7 /* App */,
 				0501EE7F526F9336B07F57E7 /* Audio */,
 				F14DCC3CE43B8DCBC3B3BA06 /* Input */,
@@ -466,6 +480,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FBD51D3971BE030B43A7B014 /* AITextEnhancerProvider.swift in Sources */,
 				6560F4F5E2D749E82CBA44D9 /* AppState.swift in Sources */,
 				5FC857F9DA2F9270A211E800 /* AudioEngine.swift in Sources */,
 				6E4770C4FEB9A2D3CF5B6F08 /* AudioInputDevice.swift in Sources */,
@@ -481,6 +496,7 @@
 				ACFCFB2D027EDDE6A63E6271 /* ModelPhase.swift in Sources */,
 				19F7B33C8DDC2F48FA9C069A /* OnboardingStateMachine.swift in Sources */,
 				A418BE2BE9CF538062613E4B /* OnboardingView.swift in Sources */,
+				2912CE6516670ED5718FDABE /* OpenAITextEnhancer.swift in Sources */,
 				881C514B43423079C07447A6 /* OpenAITranscriptionEngine.swift in Sources */,
 				AF3F551109F9D90EEF80D935 /* PermissionService.swift in Sources */,
 				4E87E228CC9630EDAE6DB005 /* RecordingOrchestrator.swift in Sources */,

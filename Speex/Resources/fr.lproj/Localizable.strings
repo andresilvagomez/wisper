@@ -130,3 +130,7 @@ No audio is sent to the cloud.";
 "cloud.phase.verifying" = "Vérification de la clé API...";
 "cloud.error.no_api_key" = "Clé API requise";
 "cloud.error.invalid_api_key" = "Clé API invalide";
+"settings.ai_section" = "Intelligence artificielle";
+"settings.ai_auto_edit" = "Édition automatique par IA";
+"settings.ai_auto_edit.streaming_note" = "En mode « En direct », le texte amélioré est copié dans le presse-papiers à la fin.";
+"settings.ai_auto_edit.needs_api_key" = "Configurez une clé API OpenAI dans l'onglet Modèle pour activer cette option.";

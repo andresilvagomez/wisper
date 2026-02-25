@@ -130,3 +130,7 @@ No audio is sent to the cloud.";
 "cloud.phase.verifying" = "API-Schlüssel wird überprüft...";
 "cloud.error.no_api_key" = "API-Schlüssel erforderlich";
 "cloud.error.invalid_api_key" = "Ungültiger API-Schlüssel";
+"settings.ai_section" = "Künstliche Intelligenz";
+"settings.ai_auto_edit" = "Automatische KI-Bearbeitung";
+"settings.ai_auto_edit.streaming_note" = "Im Live-Modus wird der verbesserte Text nach Abschluss in die Zwischenablage kopiert.";
+"settings.ai_auto_edit.needs_api_key" = "Richte einen OpenAI API-Schlüssel im Tab Modell ein, um diese Option zu aktivieren.";

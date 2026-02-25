@@ -97,6 +97,7 @@ final class AppState: ObservableObject {
     @AppStorage("muteOtherAppsWhileRecording") var muteOtherAppsWhileRecording = false
     @AppStorage("selectedInputDeviceUID") var selectedInputDeviceUID = ""
     @AppStorage("openaiAPIKey") var openaiAPIKey = ""
+    @AppStorage("aiAutoEditEnabled") var aiAutoEditEnabled = false
     @Published private(set) var onboardingPresentationToken = UUID()
     private var hasRunInitialPermissionAudit = false
     private let permissionService = PermissionService()
@@ -111,6 +112,7 @@ final class AppState: ObservableObject {
     var transcriptionEngine: (any TranscriptionProvider)?
     var hotkeyManager: HotkeyManager?
     var textInjector: TextInjector?
+    var aiTextEnhancer: (any AITextEnhancerProvider)?
 
     var isCloudModelConfigured: Bool { !openaiAPIKey.isEmpty }
 
@@ -119,10 +121,12 @@ final class AppState: ObservableObject {
         TranscriptionEngine.migrateModelsFromDocumentsIfNeeded()
         setupEngines()
         selectedModel = modelManager.normalizeSelectedModel(selectedModel)
-        let resolved = modelManager.applyBestDownloaded(currentSelection: selectedModel)
-        if selectedModel != resolved {
-            selectedModel = resolved
-            print("[Speex] Selected model after lifecycle resolution: \(resolved)")
+        if !ModelManager.isCloudModel(selectedModel) {
+            let resolved = modelManager.applyBestDownloaded(currentSelection: selectedModel)
+            if selectedModel != resolved {
+                selectedModel = resolved
+                print("[Speex] Selected model after lifecycle resolution: \(resolved)")
+            }
         }
         if hasCompletedOnboarding {
             ensureModelWarmInBackground(reason: "app_init")
@@ -224,6 +228,16 @@ final class AppState: ObservableObject {
                 onPartialResult: onPartial,
                 onFinalResult: onFinal
             )
+        }
+
+        refreshAITextEnhancer()
+    }
+
+    func refreshAITextEnhancer() {
+        if !openaiAPIKey.isEmpty {
+            aiTextEnhancer = OpenAITextEnhancer(apiKey: openaiAPIKey)
+        } else {
+            aiTextEnhancer = nil
         }
     }
 

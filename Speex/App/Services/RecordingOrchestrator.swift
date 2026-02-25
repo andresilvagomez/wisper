@@ -177,9 +177,14 @@ final class RecordingOrchestrator {
                             partialText: appState.partialText
                         ) else { return }
 
+                        let textToInject = await self.applyAIAutoEditIfEnabled(
+                            text: polished,
+                            appState: appState
+                        )
+
                         appState.textInjector?.typeText(
-                            polished,
-                            clipboardAfterInjection: polished
+                            textToInject,
+                            clipboardAfterInjection: textToInject
                         )
                     }
                 }
@@ -187,29 +192,71 @@ final class RecordingOrchestrator {
                 // Streaming mode — use completion to inject the delta directly.
                 appState.transcriptionEngine?.finalize(confirmedText: currentConfirmedText) { [weak appState, weak self] finalText in
                     Task { @MainActor in
-                        guard let appState, let self, let finalText else { return }
+                        guard let appState, let self else { return }
 
-                        let result = self.transcriptionCoordinator.consumeFinal(
-                            text: finalText,
-                            mode: appState.transcriptionMode,
-                            confirmedText: appState.confirmedText,
-                            recordingStartedAt: self.sessionCoordinator.recordingStartedAt,
-                            chunkStartedAt: Date()
-                        )
-                        appState.confirmedText = result.confirmedText
-                        appState.partialText = result.partialText
+                        if let finalText {
+                            let result = self.transcriptionCoordinator.consumeFinal(
+                                text: finalText,
+                                mode: appState.transcriptionMode,
+                                confirmedText: appState.confirmedText,
+                                recordingStartedAt: self.sessionCoordinator.recordingStartedAt,
+                                chunkStartedAt: Date()
+                            )
+                            appState.confirmedText = result.confirmedText
+                            appState.partialText = result.partialText
 
-                        switch result.action {
-                        case .none:
-                            break
-                        case let .typeText(text, clipboardAfterInjection):
-                            appState.textInjector?.typeText(text, clipboardAfterInjection: clipboardAfterInjection)
-                        case let .copyToClipboard(text):
-                            appState.textInjector?.copyAccumulatedTextToClipboard(text)
+                            switch result.action {
+                            case .none:
+                                break
+                            case let .typeText(text, clipboardAfterInjection):
+                                appState.textInjector?.typeText(text, clipboardAfterInjection: clipboardAfterInjection)
+                            case let .copyToClipboard(text):
+                                appState.textInjector?.copyAccumulatedTextToClipboard(text)
+                            }
+                        }
+
+                        // In streaming mode, AI auto-edit enhances the full text
+                        // and copies it to clipboard for the user to paste if desired.
+                        let fullText = appState.confirmedText
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !fullText.isEmpty,
+                           appState.aiAutoEditEnabled,
+                           let enhancer = appState.aiTextEnhancer
+                        {
+                            let enhanced = try? await enhancer.enhance(
+                                text: fullText,
+                                language: appState.selectedLanguage
+                            )
+                            if let enhanced {
+                                appState.textInjector?.copyAccumulatedTextToClipboard(enhanced)
+                                print("[Speex AI] Streaming: enhanced text copied to clipboard")
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+
+    // MARK: - AI Auto Edit
+
+    private func applyAIAutoEditIfEnabled(
+        text: String,
+        appState: AppState
+    ) async -> String {
+        guard appState.aiAutoEditEnabled,
+              let enhancer = appState.aiTextEnhancer
+        else { return text }
+
+        do {
+            let enhanced = try await enhancer.enhance(
+                text: text,
+                language: appState.selectedLanguage
+            )
+            return enhanced
+        } catch {
+            print("[Speex AI] Enhancement failed, using original: \(error.localizedDescription)")
+            return text
         }
     }
 
