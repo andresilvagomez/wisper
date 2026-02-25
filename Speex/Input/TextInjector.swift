@@ -34,6 +34,20 @@ final class TextInjector: @unchecked Sendable {
         print("[Speex] TextInjector: target app = \(targetApp?.localizedName ?? "none") (pid: \(targetApp?.processIdentifier ?? 0))")
     }
 
+    /// Pre-activate the captured target app from the main thread.
+    /// Call before `typeText` when the finalize callback runs long after
+    /// recording stopped (e.g., cloud model latency) to ensure focus is
+    /// restored before the paste attempt.
+    func ensureTargetAppActive() {
+        guard let app = resolvedTargetApp() else {
+            print("[Speex] ensureTargetAppActive: no resolved target app")
+            return
+        }
+        NSApp.yieldActivation(to: app)
+        app.activate()
+        print("[Speex] ensureTargetAppActive: activated \(app.localizedName ?? "?")")
+    }
+
     func typeText(_ text: String, clipboardAfterInjection: String? = nil) {
         guard let textToInject = Self.normalizedInjectionText(text) else { return }
         setClipboard(textToInject, synchronously: true)
@@ -171,6 +185,23 @@ final class TextInjector: @unchecked Sendable {
         )
 
         if setStatus == .success {
+            // Verify text was actually inserted — some apps (Electron,
+            // web views) report success without modifying the field.
+            var verifyRef: CFTypeRef?
+            let verifyStatus = AXUIElementCopyAttributeValue(
+                focusedElement,
+                kAXValueAttribute as CFString,
+                &verifyRef
+            )
+            if verifyStatus == .success,
+               let currentValue = verifyRef as? String {
+                if currentValue.hasSuffix(text) {
+                    return true
+                }
+                print("[Speex] AX insert reported success but text not in field — falling back to Cmd+V")
+                return false
+            }
+            // Can't read field value — trust the AX success status
             return true
         }
 

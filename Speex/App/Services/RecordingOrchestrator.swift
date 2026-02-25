@@ -151,7 +151,11 @@ final class RecordingOrchestrator {
             //    confirmedText is up-to-date before the retranscription.
             await appState.transcriptionEngine?.flushProcessing()
 
-            // 3. Finalize: retranscribe the tail of the full session audio and
+            // 3. Yield to let any pending onFinalResult tasks run on the main
+            //    actor, so confirmedText reflects the latest chunk results.
+            await Task.yield()
+
+            // 4. Finalize: retranscribe the tail of the full session audio and
             //    extract only the new text (delta) not already in confirmedText.
             let currentConfirmedText = appState.confirmedText
 
@@ -189,11 +193,18 @@ final class RecordingOrchestrator {
                     }
                 }
             } else {
-                // Streaming mode — use completion to inject the delta directly.
+                // Streaming mode — when chunks were typed during recording,
+                // inject only the finalize delta. When NO text was typed
+                // (e.g., short recording with cloud model latency), fall back
+                // to the same injection path as on-release for reliability.
+                let hadTextDuringRecording = !currentConfirmedText
+                    .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
                 appState.transcriptionEngine?.finalize(confirmedText: currentConfirmedText) { [weak appState, weak self] finalText in
                     Task { @MainActor in
                         guard let appState, let self else { return }
 
+                        // Always process the finalize delta to update confirmedText.
                         if let finalText {
                             let result = self.transcriptionCoordinator.consumeFinal(
                                 text: finalText,
@@ -205,32 +216,63 @@ final class RecordingOrchestrator {
                             appState.confirmedText = result.confirmedText
                             appState.partialText = result.partialText
 
-                            switch result.action {
-                            case .none:
-                                break
-                            case let .typeText(text, clipboardAfterInjection):
-                                appState.textInjector?.typeText(text, clipboardAfterInjection: clipboardAfterInjection)
-                            case let .copyToClipboard(text):
-                                appState.textInjector?.copyAccumulatedTextToClipboard(text)
+                            // Only inject the delta if text was already typed during recording.
+                            if hadTextDuringRecording {
+                                switch result.action {
+                                case .none:
+                                    break
+                                case let .typeText(text, clipboardAfterInjection):
+                                    appState.textInjector?.typeText(text, clipboardAfterInjection: clipboardAfterInjection)
+                                case let .copyToClipboard(text):
+                                    appState.textInjector?.copyAccumulatedTextToClipboard(text)
+                                }
                             }
                         }
 
-                        // In streaming mode, AI auto-edit enhances the full text
-                        // and copies it to clipboard for the user to paste if desired.
-                        let fullText = appState.confirmedText
-                            .trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !fullText.isEmpty,
-                           appState.aiAutoEditEnabled,
-                           let enhancer = appState.aiTextEnhancer
-                        {
-                            let enhanced = try? await enhancer.enhance(
-                                text: fullText,
-                                language: appState.selectedLanguage
-                            )
-                            if let enhanced {
-                                appState.textInjector?.copyAccumulatedTextToClipboard(enhanced)
-                                print("[Speex AI] Streaming: enhanced text copied to clipboard")
+                        if hadTextDuringRecording {
+                            // Text was injected during recording — AI auto-edit to clipboard.
+                            let fullText = appState.confirmedText
+                                .trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !fullText.isEmpty,
+                               appState.aiAutoEditEnabled,
+                               let enhancer = appState.aiTextEnhancer
+                            {
+                                let enhanced = try? await enhancer.enhance(
+                                    text: fullText,
+                                    language: appState.selectedLanguage
+                                )
+                                if let enhanced {
+                                    appState.textInjector?.copyAccumulatedTextToClipboard(enhanced)
+                                    print("[Speex AI] Streaming: enhanced text copied to clipboard")
+                                }
                             }
+                        } else {
+                            // No text was typed during recording — use the same
+                            // injection mechanism as on-release (proven to work).
+                            guard let polished = self.transcriptionCoordinator.finalizedOnReleaseText(
+                                confirmedText: appState.confirmedText,
+                                partialText: appState.partialText
+                            ) else {
+                                print("[Speex] Streaming fallback: no text to inject after finalize")
+                                return
+                            }
+
+                            let textToInject = await self.applyAIAutoEditIfEnabled(
+                                text: polished,
+                                appState: appState
+                            )
+
+                            // Pre-activate target app from the main thread — the
+                            // finalize callback arrives seconds after the overlay
+                            // closed, so the target app may need explicit focus.
+                            appState.textInjector?.ensureTargetAppActive()
+                            try? await Task.sleep(for: .milliseconds(400))
+
+                            print("[Speex] Streaming fallback: injecting \(textToInject.count) chars")
+                            appState.textInjector?.typeText(
+                                textToInject,
+                                clipboardAfterInjection: textToInject
+                            )
                         }
                     }
                 }

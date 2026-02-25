@@ -200,8 +200,6 @@ final class AppState: ObservableObject {
                     )
                 }
 
-                guard self.isRecording else { return }
-
                 switch result.action {
                 case .none:
                     break
