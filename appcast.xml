@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Speex</title>
+    <link>https://github.com/andresilvagomez/speex</link>
+    <description>Actualizaciones de Speex</description>
+    <language>es</language>
+    <item>
+      <title>Speex 0.0.3</title>
+      <pubDate>Wed, 25 Feb 2026 08:43:04 -0500</pubDate>
+      <enclosure
+        url="https://github.com/andresilvagomez/speex/releases/download/v0.0.3/Speex-0.0.3.dmg"
+        sparkle:edSignature="EDG0abWzEZjUGs3zv8DLEDGu0WNE5yiz+uORb8mWyHpvtfgNK4tSB2vgQ6leOyEfcxmMZajJCMuXPVp5bjaECQ==" length="6944691"
+        length="6944691"
+        type="application/octet-stream" />
+      <sparkle:version>3</sparkle:version>
+      <sparkle:shortVersionString>0.0.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+    </item>
+  </channel>
+</rss>

@@ -11,7 +11,6 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUTPUT_DIR="$PROJECT_DIR/dist"
 
 echo "=== Building $APP_NAME ($CONFIG) — without embedded model ==="
-SPEEX_SKIP_EMBED_MODEL=1 \
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
     -scheme "$SCHEME" \
     -configuration "$CONFIG" \
@@ -19,7 +18,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
     build \
     CODE_SIGN_IDENTITY="-" \
     CODE_SIGN_STYLE="Manual" \
-    SPEEX_REQUIRE_EMBEDDED_MODEL=0 \
+    SPEEX_SKIP_EMBED_MODEL=1 \
     2>&1 | tail -5
 
 APP_PATH="$BUILD_DIR/Build/Products/$CONFIG/$APP_NAME.app"
