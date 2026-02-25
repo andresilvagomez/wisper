@@ -28,9 +28,9 @@ if [ ! -d "$APP_PATH" ]; then
     exit 1
 fi
 
-# Re-sign ad-hoc so it runs on any Mac without a specific certificate
-echo "=== Signing ad-hoc ==="
-codesign --force --deep --sign - "$APP_PATH"
+# Re-sign with developer certificate for Keychain access
+echo "=== Signing with developer certificate ==="
+codesign --force --deep --sign "Apple Development: andresilvagomez@gmail.com (7NBJJ9P97F)" "$APP_PATH"
 
 # Get version for filename
 VERSION=$(defaults read "$APP_PATH/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo "1.0")

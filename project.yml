@@ -44,7 +44,7 @@ targets:
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         CODE_SIGN_STYLE: Manual
         DEVELOPMENT_TEAM: 7NBJJ9P97F
-        CODE_SIGN_IDENTITY: "DD9A14A7890D716B95CFACB96F0EBDA356EE18CB"
+        CODE_SIGN_IDENTITY: "Apple Development"
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
         ENABLE_HARDENED_RUNTIME: false
         ENABLE_APP_SANDBOX: false
@@ -57,6 +57,10 @@ targets:
         product: FirebaseCrashlytics
       - package: Firebase
         product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseStorage
+      - package: Firebase
+        product: FirebaseAppCheck
       - package: GoogleSignIn-iOS
         product: GoogleSignIn
       - package: Sparkle

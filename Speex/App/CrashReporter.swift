@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseAppCheck
 import FirebaseCore
 import FirebaseCrashlytics
 
@@ -8,9 +9,15 @@ enum CrashReporter {
 
         guard let plistPath = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
               let options = FirebaseOptions(contentsOfFile: plistPath) else {
-            print("[Speex] ⚠️ Crashlytics not configured: GoogleService-Info.plist missing in app bundle")
+            print("[Speex] ⚠️ Firebase not configured: GoogleService-Info.plist missing in app bundle")
             return
         }
+
+        #if DEBUG
+        AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
+        #else
+        AppCheck.setAppCheckProviderFactory(DeviceCheckProviderFactory())
+        #endif
 
         FirebaseApp.configure(options: options)
 

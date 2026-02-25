@@ -7,11 +7,11 @@
     <language>es</language>
     <item>
       <title>Speex 0.0.3</title>
-      <pubDate>Wed, 25 Feb 2026 08:43:04 -0500</pubDate>
+      <pubDate>Wed, 25 Feb 2026 09:10:25 -0500</pubDate>
       <enclosure
         url="https://github.com/andresilvagomez/speex/releases/download/v0.0.3/Speex-0.0.3.dmg"
-        sparkle:edSignature="EDG0abWzEZjUGs3zv8DLEDGu0WNE5yiz+uORb8mWyHpvtfgNK4tSB2vgQ6leOyEfcxmMZajJCMuXPVp5bjaECQ==" length="6944691"
-        length="6944691"
+        sparkle:edSignature="v3Bt21almnHVWrB9Jbdf3GP4z8ORI8Y/D88PZ0Q+nRAIRolmeJc8eRqm5Ca2h0S3iOSJ0rvfAS4M4xoqM6C/BA==" length="7253381"
+        length="7253381"
         type="application/octet-stream" />
       <sparkle:version>3</sparkle:version>
       <sparkle:shortVersionString>0.0.3</sparkle:shortVersionString>
