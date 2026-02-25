@@ -92,6 +92,13 @@ final class AuthService: ObservableObject {
         }
     }
 
+    // MARK: - Skip Login
+
+    func skipLogin() {
+        isAuthenticated = true
+        isLoading = false
+    }
+
     // MARK: - Sign Out
 
     func signOut() {
@@ -101,6 +108,7 @@ final class AuthService: ObservableObject {
         } catch {
             errorMessage = Self.friendlyMessage(for: error)
         }
+        isAuthenticated = false
     }
 
     // MARK: - Error Messages

@@ -21,6 +21,7 @@ struct AuthView: View {
             }
             feedbackMessages
             Spacer()
+            skipButton
         }
         .frame(width: 380, height: 520)
         .onAppear {
@@ -242,6 +243,19 @@ struct AuthView: View {
                 .padding(.horizontal, 32)
                 .padding(.top, 8)
         }
+    }
+
+    // MARK: - Skip Login
+
+    private var skipButton: some View {
+        Button("Continuar sin cuenta") {
+            authService.skipLogin()
+            NSApp.keyWindow?.close()
+        }
+        .buttonStyle(.plain)
+        .font(.caption)
+        .foregroundColor(.secondary)
+        .padding(.bottom, 16)
     }
 
     // MARK: - Helpers

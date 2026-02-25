@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseAppCheck
+import FirebaseAuth
 import FirebaseCore
 import FirebaseCrashlytics
 
@@ -20,6 +21,14 @@ enum CrashReporter {
         #endif
 
         FirebaseApp.configure(options: options)
+
+        // Use default keychain (no access group) to avoid entitlement requirement
+        do {
+            try Auth.auth().useUserAccessGroup(nil)
+            print("[Speex] ✅ Firebase Auth: using default keychain (no access group)")
+        } catch {
+            print("[Speex] ❌ Firebase Auth keychain setup failed: \(error)")
+        }
 
         let crashlytics = Crashlytics.crashlytics()
         crashlytics.setCustomValue(Bundle.main.infoDictionary?["CFBundleShortVersionString"] ?? "unknown", forKey: "app_version")

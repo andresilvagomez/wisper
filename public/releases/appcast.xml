@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Speex</title>
+    <link>https://speex.co</link>
+    <description>Actualizaciones de Speex</description>
+    <language>es</language>
+    <item>
+      <title>Speex 0.0.4</title>
+      <pubDate>Wed, 25 Feb 2026 11:34:29 -0500</pubDate>
+      <enclosure
+        url="https://firebasestorage.googleapis.com/v0/b/whisper-f6336.firebasestorage.app/o/releases%2FSpeex-0.0.4.dmg?alt=media"
+        sparkle:edSignature="NYIenNXILB63qv+MvwKQ9DIXnaxf27RWEqwAjM7P/t7fa2opAnaAKg2NCdOmciJi4NPeRdpaZWS+jd+ACzqoDg==" length="7250731"
+        length="7250731"
+        type="application/octet-stream" />
+      <sparkle:version>4</sparkle:version>
+      <sparkle:shortVersionString>0.0.4</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+    </item>
+  </channel>
+</rss>

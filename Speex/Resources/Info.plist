@@ -29,7 +29,7 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Speex needs access to your microphone to transcribe your speech to text.</string>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/andresilvagomez/speex/main/appcast.xml</string>
+	<string>https://speex.co/releases/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>UzIRd5V/MXOZEGF6k3nJutzolfFyGSbkvL+JgALPqME=</string>
 	<key>CFBundleURLTypes</key>

@@ -1,0 +1,24 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "redirects": [
+      {
+        "source": "/download",
+        "destination": "https://firebasestorage.googleapis.com/v0/b/whisper-f6336.firebasestorage.app/o/releases%2FSpeex-latest.dmg?alt=media",
+        "type": 302
+      }
+    ],
+    "headers": [
+      {
+        "source": "/releases/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=300" }
+        ]
+      }
+    ]
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}
