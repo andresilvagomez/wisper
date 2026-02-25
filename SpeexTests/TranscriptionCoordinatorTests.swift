@@ -159,6 +159,112 @@ struct TranscriptionCoordinatorTests {
         }
     }
 
+    // MARK: - Streaming Finalize Fallback
+
+    @Test("Streaming first chunk with empty confirmed returns full text")
+    func streamingFirstChunkReturnsFullText() {
+        let coordinator = TranscriptionCoordinator()
+        let start = Date(timeIntervalSince1970: 10_000)
+
+        let result = coordinator.consumeFinal(
+            text: "ahora estoy probando el streaming",
+            mode: .streaming,
+            confirmedText: "",
+            recordingStartedAt: start,
+            chunkStartedAt: start,
+            now: start.addingTimeInterval(0.05)
+        )
+
+        // When confirmedText is empty, the full text should be in the typeText action
+        switch result.action {
+        case let .typeText(text, clipboardAfterInjection):
+            #expect(text.lowercased().contains("probando"))
+            #expect(clipboardAfterInjection == result.confirmedText)
+        default:
+            Issue.record("Expected .typeText action for first streaming chunk")
+        }
+    }
+
+    @Test("finalizedOnReleaseText returns nil for empty text")
+    func finalizedOnReleaseTextNilForEmpty() {
+        let coordinator = TranscriptionCoordinator()
+        let text = coordinator.finalizedOnReleaseText(
+            confirmedText: "",
+            partialText: ""
+        )
+        #expect(text == nil)
+    }
+
+    @Test("finalizedOnReleaseText returns nil for whitespace-only text")
+    func finalizedOnReleaseTextNilForWhitespace() {
+        let coordinator = TranscriptionCoordinator()
+        let text = coordinator.finalizedOnReleaseText(
+            confirmedText: "   \n  ",
+            partialText: ""
+        )
+        #expect(text == nil)
+    }
+
+    @Test("finalizedOnReleaseText falls back to partial when confirmed is empty")
+    func finalizedOnReleaseTextFallsBackToPartial() {
+        let coordinator = TranscriptionCoordinator()
+        let text = coordinator.finalizedOnReleaseText(
+            confirmedText: "",
+            partialText: "texto parcial"
+        )
+        #expect(text != nil)
+        #expect(text!.lowercased().contains("parcial"))
+    }
+
+    @Test("Streaming fallback produces injectable text after consumeFinal")
+    func streamingFallbackProducesTextAfterConsumeFinal() {
+        let coordinator = TranscriptionCoordinator()
+        let start = Date(timeIntervalSince1970: 11_000)
+
+        // Simulate finalize delta being consumed (like cloud model finalize)
+        let result = coordinator.consumeFinal(
+            text: "probando la inyección de texto",
+            mode: .streaming,
+            confirmedText: "",
+            recordingStartedAt: start,
+            chunkStartedAt: start,
+            now: start.addingTimeInterval(0.1)
+        )
+
+        // After consuming the finalize delta, finalizedOnReleaseText should
+        // produce injectable text from the updated confirmedText
+        let polished = coordinator.finalizedOnReleaseText(
+            confirmedText: result.confirmedText,
+            partialText: result.partialText
+        )
+        #expect(polished != nil, "Streaming fallback should have text to inject after finalize")
+        #expect(polished!.isEmpty == false)
+    }
+
+    @Test("On-release consumeFinal produces copyToClipboard, not typeText")
+    func onReleaseProducesCopyAction() {
+        let coordinator = TranscriptionCoordinator()
+        let start = Date(timeIntervalSince1970: 12_000)
+
+        let result = coordinator.consumeFinal(
+            text: "texto de prueba",
+            mode: .onRelease,
+            confirmedText: "",
+            recordingStartedAt: start,
+            chunkStartedAt: start,
+            now: start.addingTimeInterval(0.05)
+        )
+
+        switch result.action {
+        case .copyToClipboard:
+            break // Expected
+        default:
+            Issue.record("On-release mode should produce .copyToClipboard, not \(result.action)")
+        }
+    }
+
+    // MARK: - Punctuation
+
     @Test("No inserta espacio antes de puntuación entre bloques")
     func noSpaceBeforePunctuationAcrossChunks() {
         let coordinator = TranscriptionCoordinator()

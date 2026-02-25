@@ -115,6 +115,56 @@ struct RecordingOrchestratorTests {
         #expect(result.partialText == "Hello")
     }
 
+    // MARK: - Streaming vs On-Release Stop Evaluation
+
+    @Test("Session stop in streaming mode returns shouldFinalizeOnRelease false")
+    func stopSessionStreamingMode() {
+        let orchestrator = RecordingOrchestrator()
+        orchestrator.sessionCoordinator.beginSession()
+
+        let evaluation = orchestrator.sessionCoordinator.stopSession(
+            isRecording: true,
+            transcriptionMode: .streaming
+        )
+
+        switch evaluation {
+        case let .stopped(shouldFinalizeOnRelease):
+            #expect(shouldFinalizeOnRelease == false,
+                    "Streaming mode should NOT finalize on release")
+        case .notRecording:
+            Issue.record("Expected .stopped but got .notRecording")
+        }
+    }
+
+    @Test("Session stop in onRelease mode returns shouldFinalizeOnRelease true")
+    func stopSessionOnReleaseMode() {
+        let orchestrator = RecordingOrchestrator()
+        orchestrator.sessionCoordinator.beginSession()
+
+        let evaluation = orchestrator.sessionCoordinator.stopSession(
+            isRecording: true,
+            transcriptionMode: .onRelease
+        )
+
+        switch evaluation {
+        case let .stopped(shouldFinalizeOnRelease):
+            #expect(shouldFinalizeOnRelease == true,
+                    "On-release mode should finalize on release")
+        case .notRecording:
+            Issue.record("Expected .stopped but got .notRecording")
+        }
+    }
+
+    @Test("Session stop when not recording returns notRecording")
+    func stopSessionNotRecording() {
+        let orchestrator = RecordingOrchestrator()
+        let evaluation = orchestrator.sessionCoordinator.stopSession(
+            isRecording: false,
+            transcriptionMode: .streaming
+        )
+        #expect(evaluation == .notRecording)
+    }
+
     // MARK: - System Audio Muter
 
     @Test("System audio muter is accessible and functional")

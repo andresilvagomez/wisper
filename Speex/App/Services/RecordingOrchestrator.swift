@@ -143,7 +143,7 @@ final class RecordingOrchestrator {
 
             // 1. Grace period — let the AVAudioEngine tap deliver its last
             //    in-flight buffers into the accumulator before tearing down.
-            try? await Task.sleep(for: .milliseconds(250))
+            try? await Task.sleep(for: .milliseconds(100))
             appState.audioEngine?.stopCapture()
 
             // 2. Wait for any chunk that processAccumulatedAudio is currently
@@ -261,12 +261,6 @@ final class RecordingOrchestrator {
                                 text: polished,
                                 appState: appState
                             )
-
-                            // Pre-activate target app from the main thread — the
-                            // finalize callback arrives seconds after the overlay
-                            // closed, so the target app may need explicit focus.
-                            appState.textInjector?.ensureTargetAppActive()
-                            try? await Task.sleep(for: .milliseconds(400))
 
                             print("[Speex] Streaming fallback: injecting \(textToInject.count) chars")
                             appState.textInjector?.typeText(

@@ -4,7 +4,7 @@ import Foundation
 
 final class TextInjector: @unchecked Sendable {
     private let pasteQueue = DispatchQueue(label: "com.speex.textinjector", qos: .userInteractive)
-    private let activationDelayMicros: useconds_t = 350_000
+    private let activationDelayMicros: useconds_t = 150_000
     private let pasteRetryCount = 1
 
     /// The app that was active when recording started — paste goes here.
@@ -34,20 +34,6 @@ final class TextInjector: @unchecked Sendable {
         print("[Speex] TextInjector: target app = \(targetApp?.localizedName ?? "none") (pid: \(targetApp?.processIdentifier ?? 0))")
     }
 
-    /// Pre-activate the captured target app from the main thread.
-    /// Call before `typeText` when the finalize callback runs long after
-    /// recording stopped (e.g., cloud model latency) to ensure focus is
-    /// restored before the paste attempt.
-    func ensureTargetAppActive() {
-        guard let app = resolvedTargetApp() else {
-            print("[Speex] ensureTargetAppActive: no resolved target app")
-            return
-        }
-        NSApp.yieldActivation(to: app)
-        app.activate()
-        print("[Speex] ensureTargetAppActive: activated \(app.localizedName ?? "?")")
-    }
-
     func typeText(_ text: String, clipboardAfterInjection: String? = nil) {
         guard let textToInject = Self.normalizedInjectionText(text) else { return }
         setClipboard(textToInject, synchronously: true)
@@ -63,24 +49,30 @@ final class TextInjector: @unchecked Sendable {
         let app = resolvedTargetApp()
 
         pasteQueue.async {
-            // 1. Yield Speex's activation and transfer focus to target app
+            // 1. Ensure the target app has focus
             if let app {
-                // yieldActivation must run on main thread — cooperatively hand focus to target
-                DispatchQueue.main.sync {
-                    NSApp.yieldActivation(to: app)
-                }
-                app.activate()
-                usleep(self.activationDelayMicros)
+                let alreadyActive = NSWorkspace.shared.frontmostApplication
+                    .map { $0.processIdentifier == app.processIdentifier } ?? false
 
-                // Verify the target app actually became active
-                let frontmost = NSWorkspace.shared.frontmostApplication
-                if let frontmost, frontmost.processIdentifier != app.processIdentifier {
-                    print("[Speex] ⚠️ Target app did not activate (frontmost: \(frontmost.localizedName ?? "?")), retrying...")
+                if alreadyActive {
+                    print("[Speex] Target app already active — skipping activation")
+                } else {
                     DispatchQueue.main.sync {
                         NSApp.yieldActivation(to: app)
                     }
                     app.activate()
                     usleep(self.activationDelayMicros)
+
+                    // Verify the target app actually became active
+                    let frontmost = NSWorkspace.shared.frontmostApplication
+                    if let frontmost, frontmost.processIdentifier != app.processIdentifier {
+                        print("[Speex] ⚠️ Target app did not activate (frontmost: \(frontmost.localizedName ?? "?")), retrying...")
+                        DispatchQueue.main.sync {
+                            NSApp.yieldActivation(to: app)
+                        }
+                        app.activate()
+                        usleep(self.activationDelayMicros)
+                    }
                 }
             }
 

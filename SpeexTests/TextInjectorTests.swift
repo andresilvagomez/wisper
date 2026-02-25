@@ -39,4 +39,34 @@ struct TextInjectorTests {
         // This just verifies the method doesn't crash
         _ = injector.hasAccessibility
     }
+
+    // MARK: - normalizedInjectionText edge cases
+
+    @Test("normalizedInjectionText preserves internal whitespace")
+    func preservesInternalWhitespace() {
+        #expect(TextInjector.normalizedInjectionText("hola mundo") == "hola mundo")
+        #expect(TextInjector.normalizedInjectionText("line1\nline2") == "line1\nline2")
+    }
+
+    @Test("normalizedInjectionText trims leading and trailing whitespace only")
+    func trimsOnlyEdges() {
+        #expect(TextInjector.normalizedInjectionText("\n hola mundo \n") == "hola mundo")
+    }
+
+    // MARK: - typeText without accessibility
+
+    @Test("typeText sets clipboard even without accessibility permission")
+    func typeTextSetsClipboardWithoutAccessibility() {
+        let injector = TextInjector()
+        // hasAccessibility is false by default in tests
+        #expect(injector.hasAccessibility == false)
+        // Should not crash — sets clipboard but skips paste
+        injector.typeText("texto de prueba")
+    }
+
+    @Test("typeText with clipboardAfterInjection does not crash")
+    func typeTextWithClipboardAfterInjection() {
+        let injector = TextInjector()
+        injector.typeText("texto", clipboardAfterInjection: "texto completo")
+    }
 }
