@@ -1,7 +1,7 @@
 import Foundation
 @preconcurrency import WhisperKit
 
-final class TranscriptionEngine: @unchecked Sendable {
+final class TranscriptionEngine: TranscriptionProvider, @unchecked Sendable {
     private var whisperKit: WhisperKit?
     private var audioAccumulator: [Float] = []
     private var fullSessionAudio: [Float] = []

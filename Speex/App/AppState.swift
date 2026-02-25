@@ -96,6 +96,7 @@ final class AppState: ObservableObject {
     @AppStorage("launchAtLogin") var launchAtLogin = false
     @AppStorage("muteOtherAppsWhileRecording") var muteOtherAppsWhileRecording = false
     @AppStorage("selectedInputDeviceUID") var selectedInputDeviceUID = ""
+    @AppStorage("openaiAPIKey") var openaiAPIKey = ""
     @Published private(set) var onboardingPresentationToken = UUID()
     private var hasRunInitialPermissionAudit = false
     private let permissionService = PermissionService()
@@ -107,9 +108,11 @@ final class AppState: ObservableObject {
     // MARK: - Engines
 
     var audioEngine: AudioEngine?
-    var transcriptionEngine: TranscriptionEngine?
+    var transcriptionEngine: (any TranscriptionProvider)?
     var hotkeyManager: HotkeyManager?
     var textInjector: TextInjector?
+
+    var isCloudModelConfigured: Bool { !openaiAPIKey.isEmpty }
 
     init() {
         recordingOrchestrator.appState = self
@@ -131,61 +134,7 @@ final class AppState: ObservableObject {
         audioEngine = AudioEngine()
         refreshInputDevices()
         refreshPermissionState()
-
-        transcriptionEngine = TranscriptionEngine(
-            onPartialResult: { [weak self] text in
-                Task { @MainActor in
-                    guard let self else { return }
-                    print("[Speex] Partial: \(text)")
-                    let result = self.recordingOrchestrator.transcriptionCoordinator.consumePartial(
-                        text,
-                        confirmedText: self.confirmedText
-                    )
-                    self.confirmedText = result.confirmedText
-                    self.partialText = result.partialText
-                }
-            },
-            onFinalResult: { [weak self] text in
-                Task { @MainActor in
-                    guard let self else { return }
-                    let chunkStartedAt = Date()
-                    let result = self.recordingOrchestrator.transcriptionCoordinator.consumeFinal(
-                        text: text,
-                        mode: self.transcriptionMode,
-                        confirmedText: self.confirmedText,
-                        recordingStartedAt: self.recordingOrchestrator.recordingStartedAt,
-                        chunkStartedAt: chunkStartedAt
-                    )
-                    self.confirmedText = result.confirmedText
-                    self.partialText = result.partialText
-
-                    if let metricsText = result.metricsText, let processingMs = result.processingMs {
-                        self.runtimeMetrics.registerChunk(
-                            text: metricsText,
-                            processingMs: processingMs,
-                            sessionStartedAt: self.recordingOrchestrator.recordingStartedAt
-                        )
-                    }
-
-                    // Skip injection if recording already stopped — finalize() handles the rest.
-                    // We still update confirmedText/partialText above so finalize computes the correct delta.
-                    guard self.isRecording else { return }
-
-                    switch result.action {
-                    case .none:
-                        break
-                    case let .typeText(text, clipboardAfterInjection):
-                        print("[Speex] Final result: \(text)")
-                        self.textInjector?.typeText(
-                            text,
-                            clipboardAfterInjection: clipboardAfterInjection
-                        )
-                    case let .copyToClipboard(text):
-                        self.textInjector?.copyAccumulatedTextToClipboard(text)
-                    }
-                }
-            }
-        )
+        recreateTranscriptionEngine()
 
         hotkeyManager = HotkeyManager(
             onKeyDown: { [weak self] in
@@ -207,6 +156,105 @@ final class AppState: ObservableObject {
                 }
             }
         )
+    }
+
+    // MARK: - Engine Management
+
+    func recreateTranscriptionEngine() {
+        let onPartial: @Sendable (String) -> Void = { [weak self] text in
+            Task { @MainActor in
+                guard let self else { return }
+                print("[Speex] Partial: \(text)")
+                let result = self.recordingOrchestrator.transcriptionCoordinator.consumePartial(
+                    text,
+                    confirmedText: self.confirmedText
+                )
+                self.confirmedText = result.confirmedText
+                self.partialText = result.partialText
+            }
+        }
+
+        let onFinal: @Sendable (String) -> Void = { [weak self] text in
+            Task { @MainActor in
+                guard let self else { return }
+                let chunkStartedAt = Date()
+                let result = self.recordingOrchestrator.transcriptionCoordinator.consumeFinal(
+                    text: text,
+                    mode: self.transcriptionMode,
+                    confirmedText: self.confirmedText,
+                    recordingStartedAt: self.recordingOrchestrator.recordingStartedAt,
+                    chunkStartedAt: chunkStartedAt
+                )
+                self.confirmedText = result.confirmedText
+                self.partialText = result.partialText
+
+                if let metricsText = result.metricsText, let processingMs = result.processingMs {
+                    self.runtimeMetrics.registerChunk(
+                        text: metricsText,
+                        processingMs: processingMs,
+                        sessionStartedAt: self.recordingOrchestrator.recordingStartedAt
+                    )
+                }
+
+                guard self.isRecording else { return }
+
+                switch result.action {
+                case .none:
+                    break
+                case let .typeText(text, clipboardAfterInjection):
+                    print("[Speex] Final result: \(text)")
+                    self.textInjector?.typeText(
+                        text,
+                        clipboardAfterInjection: clipboardAfterInjection
+                    )
+                case let .copyToClipboard(text):
+                    self.textInjector?.copyAccumulatedTextToClipboard(text)
+                }
+            }
+        }
+
+        if ModelManager.isCloudModel(selectedModel) {
+            transcriptionEngine = OpenAITranscriptionEngine(
+                apiKey: openaiAPIKey,
+                onPartialResult: onPartial,
+                onFinalResult: onFinal
+            )
+        } else {
+            transcriptionEngine = TranscriptionEngine(
+                onPartialResult: onPartial,
+                onFinalResult: onFinal
+            )
+        }
+    }
+
+    /// Switch between local and cloud engines when the selected model changes.
+    func selectModel(_ modelID: String) {
+        guard selectedModel != modelID, !isRecording else { return }
+        let wasCloud = ModelManager.isCloudModel(selectedModel)
+        let willBeCloud = ModelManager.isCloudModel(modelID)
+
+        selectedModel = modelID
+        modelPhase = .idle
+
+        if wasCloud != willBeCloud {
+            recreateTranscriptionEngine()
+        }
+    }
+
+    /// Connect to OpenAI cloud with the given API key.
+    func connectCloud(apiKey: String) {
+        openaiAPIKey = apiKey
+        recreateTranscriptionEngine()
+        Task { await loadModel() }
+    }
+
+    /// Disconnect from OpenAI cloud and switch to the default local model.
+    func disconnectCloud() {
+        openaiAPIKey = ""
+        selectedModel = ModelManager.defaultBundledModelID
+        modelPhase = .idle
+        recreateTranscriptionEngine()
+        reloadModel()
     }
 
     func refreshPermissionState(

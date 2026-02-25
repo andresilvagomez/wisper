@@ -5,24 +5,30 @@ final class ModelManager {
 
     static let defaultBundledModelID = "openai_whisper-large-v3-v20240930_turbo"
     static let optionalSuperModelID = "openai_whisper-large-v3-v20240930"
+    static let cloudModelID = "cloud_openai_whisper"
 
     static let availableModels: [(id: String, name: String, size: String)] = [
         (defaultBundledModelID, "Speex Turbo (Predeterminado)", "~632 MB"),
         (optionalSuperModelID, "Speex Super Pro", "~1.5 GB"),
+        (cloudModelID, "Cloud (OpenAI)", "—"),
     ]
 
-    /// Priority from highest quality to lowest quality.
+    /// Priority from highest quality to lowest quality (local models only).
     static let modelQualityPriority: [String] = [
         optionalSuperModelID,
         defaultBundledModelID,
     ]
+
+    static func isCloudModel(_ modelID: String) -> Bool {
+        modelID == cloudModelID
+    }
 
     private let lifecycleCoordinator = ModelLifecycleCoordinator()
 
     // MARK: - Load
 
     func loadModel(
-        engine: TranscriptionEngine?,
+        engine: (any TranscriptionProvider)?,
         selectedModel: String,
         selectedLanguage: String,
         onPhaseChange: @escaping @Sendable (ModelPhase) -> Void
@@ -42,7 +48,8 @@ final class ModelManager {
     }
 
     func isModelInstalledLocally(_ modelID: String) -> Bool {
-        TranscriptionEngine.isModelBundled(modelID) || TranscriptionEngine.isModelDownloaded(modelID)
+        if Self.isCloudModel(modelID) { return false }
+        return TranscriptionEngine.isModelBundled(modelID) || TranscriptionEngine.isModelDownloaded(modelID)
     }
 
     // MARK: - Selection

@@ -128,3 +128,6 @@ Sin enviar audio a la nube.";
 "menu.metrics.summary" = "TTFX: %d ms · Bloques: %d · Promedio: %d ms";
 "menu.permissions.open_guide" = "Pulsa para abrir guía paso a paso";
 "model.phase.warming_up" = "Optimización final para dictado instantáneo...";
+"cloud.phase.verifying" = "Verificando API key...";
+"cloud.error.no_api_key" = "API key requerida";
+"cloud.error.invalid_api_key" = "API key inválida";

@@ -18,12 +18,13 @@ struct ModelManagerTests {
         #expect(ModelManager.optionalSuperModelID == "openai_whisper-large-v3-v20240930")
     }
 
-    @Test("Available models contains exactly two entries")
+    @Test("Available models contains local and cloud entries")
     func availableModelsCount() {
-        #expect(ModelManager.availableModels.count == 2)
+        #expect(ModelManager.availableModels.count == 3)
         let ids = ModelManager.availableModels.map(\.id)
         #expect(ids.contains(ModelManager.defaultBundledModelID))
         #expect(ids.contains(ModelManager.optionalSuperModelID))
+        #expect(ids.contains(ModelManager.cloudModelID))
     }
 
     @Test("Quality priority lists super model before turbo")

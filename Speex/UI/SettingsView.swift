@@ -119,8 +119,20 @@ struct GeneralSettingsTab: View {
 
 struct ModelSettingsTab: View {
     @EnvironmentObject var appState: AppState
+    @State private var cloudAPIKeyInput = ""
+
+    private var isCloudSelected: Bool {
+        ModelManager.isCloudModel(appState.selectedModel)
+    }
 
     private var modelButtonTitle: String {
+        if isCloudSelected {
+            switch appState.modelPhase {
+            case .loading: return "Verificando..."
+            case .ready: return "Conectado"
+            default: return "Conectar"
+            }
+        }
         switch appState.modelPhase {
         case .downloading:
             return "Descargando..."
@@ -154,7 +166,7 @@ struct ModelSettingsTab: View {
                     isInstalled: appState.isModelInstalledLocally(ModelManager.defaultBundledModelID),
                     isActive: appState.selectedModel == ModelManager.defaultBundledModelID && appState.modelPhase.isReady
                 ) {
-                    appState.selectedModel = ModelManager.defaultBundledModelID
+                    appState.selectModel(ModelManager.defaultBundledModelID)
                 }
 
                 settingsModelCard(
@@ -168,25 +180,31 @@ struct ModelSettingsTab: View {
                     isInstalled: appState.isModelInstalledLocally(ModelManager.optionalSuperModelID),
                     isActive: appState.selectedModel == ModelManager.optionalSuperModelID && appState.modelPhase.isReady
                 ) {
-                    appState.selectedModel = ModelManager.optionalSuperModelID
+                    appState.selectModel(ModelManager.optionalSuperModelID)
                 }
 
                 settingsModelCard(
                     icon: "cloud.fill",
                     title: "Cloud",
-                    badge: "Próximamente",
-                    badgeColor: .gray,
-                    features: ["Sin usar espacio en tu Mac", "Siempre actualizado", "Disponible próximamente"],
-                    isSelected: false,
-                    isDisabled: true,
-                    isInstalled: false,
-                    isActive: false
-                ) { }
+                    badge: "OpenAI",
+                    badgeColor: .cyan,
+                    features: ["Máxima precisión posible", "Sin usar espacio en tu Mac", "Requiere API key de OpenAI"],
+                    isSelected: isCloudSelected,
+                    isDisabled: appState.modelPhase.isActive || appState.isRecording,
+                    isInstalled: appState.isCloudModelConfigured,
+                    isActive: isCloudSelected && appState.modelPhase.isReady
+                ) {
+                    appState.selectModel(ModelManager.cloudModelID)
+                }
+            }
+
+            if isCloudSelected {
+                cloudAPIKeySection
             }
 
             settingsModelStatus
 
-            if !appState.modelPhase.isReady {
+            if !isCloudSelected && !appState.modelPhase.isReady {
                 Button(modelButtonTitle) {
                     Task { await appState.loadModel() }
                 }
@@ -202,6 +220,68 @@ struct ModelSettingsTab: View {
             Spacer()
         }
         .padding(24)
+        .onAppear {
+            cloudAPIKeyInput = appState.openaiAPIKey
+        }
+    }
+
+    // MARK: - Cloud API Key Section
+
+    @ViewBuilder
+    private var cloudAPIKeySection: some View {
+        if appState.isCloudModelConfigured && appState.modelPhase.isReady {
+            HStack(spacing: 8) {
+                Label("Conectado a OpenAI", systemImage: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.callout)
+                Spacer()
+                Button("Desconectar") {
+                    cloudAPIKeyInput = ""
+                    appState.disconnectCloud()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.green.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.green.opacity(0.15), lineWidth: 1)
+            )
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("API Key de OpenAI")
+                    .font(.callout)
+                    .fontWeight(.medium)
+
+                HStack(spacing: 8) {
+                    SecureField("sk-...", text: $cloudAPIKeyInput)
+                        .textFieldStyle(.roundedBorder)
+
+                    Button("Conectar") {
+                        appState.connectCloud(apiKey: cloudAPIKeyInput)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(cloudAPIKeyInput.isEmpty || appState.modelPhase.isActive)
+                }
+
+                Text("Obtén tu API key en [platform.openai.com](https://platform.openai.com/api-keys)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.cyan.opacity(0.04))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.cyan.opacity(0.15), lineWidth: 1)
+            )
+        }
     }
 
     // MARK: - Model Card

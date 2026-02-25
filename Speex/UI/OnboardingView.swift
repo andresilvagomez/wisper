@@ -453,7 +453,7 @@ struct OnboardingView: View {
                     isDisabled: appState.modelPhase.isActive,
                     isInstalled: appState.isModelInstalledLocally(ModelManager.defaultBundledModelID)
                 ) {
-                    appState.selectedModel = ModelManager.defaultBundledModelID
+                    appState.selectModel(ModelManager.defaultBundledModelID)
                 }
 
                 modelOptionCard(
@@ -466,19 +466,21 @@ struct OnboardingView: View {
                     isDisabled: appState.modelPhase.isActive,
                     isInstalled: appState.isModelInstalledLocally(ModelManager.optionalSuperModelID)
                 ) {
-                    appState.selectedModel = ModelManager.optionalSuperModelID
+                    appState.selectModel(ModelManager.optionalSuperModelID)
                 }
 
                 modelOptionCard(
                     icon: "cloud.fill",
                     title: "Cloud",
-                    badge: "Próximamente",
-                    badgeColor: .gray,
-                    features: ["Sin usar espacio en tu Mac", "Siempre actualizado", "Disponible próximamente"],
-                    isSelected: false,
-                    isDisabled: true,
-                    isInstalled: false
-                ) { }
+                    badge: "OpenAI",
+                    badgeColor: .cyan,
+                    features: ["Máxima precisión posible", "Sin usar espacio en tu Mac", "Requiere API key de OpenAI"],
+                    isSelected: ModelManager.isCloudModel(appState.selectedModel),
+                    isDisabled: appState.modelPhase.isActive,
+                    isInstalled: appState.isCloudModelConfigured
+                ) {
+                    appState.selectModel(ModelManager.cloudModelID)
+                }
             }
 
             modelStatusView

@@ -127,3 +127,6 @@ No audio is sent to the cloud.";
 "menu.metrics.summary" = "TTFX: %d ms · Blöcke: %d · Durchschnitt: %d ms";
 "menu.permissions.open_guide" = "Klicken, um die Schritt-für-Schritt-Anleitung zu öffnen";
 "model.phase.warming_up" = "Finales Warmup für sofortiges Diktieren...";
+"cloud.phase.verifying" = "API-Schlüssel wird überprüft...";
+"cloud.error.no_api_key" = "API-Schlüssel erforderlich";
+"cloud.error.invalid_api_key" = "Ungültiger API-Schlüssel";
