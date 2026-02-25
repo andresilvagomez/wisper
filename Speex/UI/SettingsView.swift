@@ -24,6 +24,11 @@ struct SettingsView: View {
                 .tabItem {
                     Label(L10n.t("About"), systemImage: "info.circle")
                 }
+
+            AccountTab()
+                .tabItem {
+                    Label("Cuenta", systemImage: "person.crop.circle")
+                }
         }
         .frame(minWidth: 660, minHeight: 420)
         .onAppear {
@@ -482,5 +487,89 @@ struct AboutTab: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+    }
+}
+
+// MARK: - Account
+
+struct AccountTab: View {
+    @EnvironmentObject var authService: AuthService
+
+    var body: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(Color.primary.opacity(0.1))
+                    .frame(width: 64, height: 64)
+
+                Text(avatarInitial)
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundColor(.primary)
+            }
+
+            if let name = authService.userDisplayName, !name.isEmpty {
+                Text(name)
+                    .font(.title3)
+                    .fontWeight(.semibold)
+            }
+
+            if let email = authService.userEmail {
+                Text(email)
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+            }
+
+            if let provider = primaryProvider {
+                HStack(spacing: 4) {
+                    Image(systemName: providerIcon(provider))
+                        .font(.caption2)
+                    Text(providerName(provider))
+                        .font(.caption2)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Color.secondary.opacity(0.1))
+                .clipShape(Capsule())
+            }
+
+            Divider()
+                .padding(.horizontal, 40)
+
+            Button("Cerrar sesión") {
+                authService.signOut()
+            }
+            .buttonStyle(.bordered)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(24)
+    }
+
+    private var avatarInitial: String {
+        let name = authService.userDisplayName ?? authService.userEmail ?? ""
+        return String(name.prefix(1)).uppercased()
+    }
+
+    private var primaryProvider: String? {
+        authService.currentUser?.providerData.first?.providerID
+    }
+
+    private func providerIcon(_ provider: String) -> String {
+        switch provider {
+        case "apple.com": return "apple.logo"
+        case "google.com": return "globe"
+        case "password": return "envelope.fill"
+        default: return "person.fill"
+        }
+    }
+
+    private func providerName(_ provider: String) -> String {
+        switch provider {
+        case "apple.com": return "Apple"
+        case "google.com": return "Google"
+        case "password": return "Email"
+        default: return provider
+        }
     }
 }

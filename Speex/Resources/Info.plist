@@ -32,5 +32,16 @@
 	<string>https://raw.githubusercontent.com/andresilvagomez/speex/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>UzIRd5V/MXOZEGF6k3nJutzolfFyGSbkvL+JgALPqME=</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.501088564428-t7q0ue22aj5php9al8kutdv4r8aermfm</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>Google Sign-In</string>
+		</dict>
+	</array>
 </dict>
 </plist>

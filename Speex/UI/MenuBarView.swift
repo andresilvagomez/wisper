@@ -3,9 +3,42 @@ import KeyboardShortcuts
 
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var authService: AuthService
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
+        if !authService.isAuthenticated {
+            notSignedInView
+        } else {
+            authenticatedContent
+        }
+    }
+
+    // MARK: - Not Signed In
+
+    private var notSignedInView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "person.crop.circle.badge.questionmark")
+                .font(.system(size: 24))
+                .foregroundColor(.secondary)
+
+            Text("Inicia sesión para usar Speex")
+                .font(.callout)
+                .foregroundColor(.secondary)
+
+            Button("Iniciar sesión") {
+                openWindow(id: "auth")
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(20)
+        .frame(width: 280)
+    }
+
+    // MARK: - Authenticated Content
+
+    private var authenticatedContent: some View {
         VStack(spacing: 0) {
             statusHeader
 
